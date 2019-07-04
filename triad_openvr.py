@@ -71,7 +71,13 @@ class Pose_sample_buffer():
         self.r_z.append((pose_mat[1][0] - pose_mat[0][1]) / (4 * r_w))
 
     def get_position(self):
-        return (self.x,self.y,self.z)
+        return (self.x, self.y, self.z)
+
+    def get_position_x(self):
+        return (self.x)
+
+    def get_position_y(self):
+        return (self.y)
 
 
 def get_pose(vr_obj):
@@ -180,7 +186,8 @@ class vr_tracking_reference(vr_tracked_device):
         return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_ModeLabel_String).decode('utf-8').upper()
 
     def sample(self, num_samples, sample_rate):
-        print("Warning: Tracking References do not move, sample isn't much use...")
+        '''print("Warning: Tracking References do not move, sample isn't much use...")'''
+        pass
 
 
 class triad_openvr():
