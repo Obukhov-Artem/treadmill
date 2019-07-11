@@ -1,9 +1,23 @@
 import sys
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtWidgets import (QWidget, QLCDNumber, QSlider, QVBoxLayout, QApplication)
 import sys
 import glob
 import serial
+
+class SomeThread(QThread):
+    progressed = pyqtSignal(int)
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        for i in range(1, 11):
+            self.progressed.emit(i)
+            time.sleep(0.5)
+
+
+
 
 '''from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
@@ -56,42 +70,48 @@ class Sliderdemo(QWidget):
         sld.valueChanged.connect(lcd.display)
         self.setWindowTitle("slider")
         #print(self.valuechange())
-        print("__init__vSl -> ", vSl)
+
+        self.speed = 32
+        self.thread = None
+
+        if not self.thread:
+            self.thread = SomeThread()
+            self.thread.progressed.connect(self.on_progress)
+            self.thread.finished.connect(self.on_finished)
+            self.thread.start()
+
+    #вызывать при завершении программы или по нажатию кнопки
+    def on_finished(self):
+        self.thread.progressed.disconnect(self.on_progress)
+        self.thread.finished.disconnect(self.on_finished)
+        self.thread = None
 
     def valuechange(self, value):
-        #self.size = self.sl.value()
-        self.__init__(value)
+        self.speed = value
+        print("__init__vSl -> ", self.speed )
         #return self.size
 
-def serial_ports():
-    if sys.platform.startswith('win'):
-        ports = ['COM%s' % (i + 1) for i in range(256)]
-    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
-        # this excludes your current terminal "/dev/tty"
-        ports = glob.glob('/dev/tty[A-Za-z]*')
-    elif sys.platform.startswith('darwin'):
-        ports = glob.glob('/dev/tty.*')
-    else:
-        raise EnvironmentError('Unsupported platform')
+    def serial_ports(self):
+        if sys.platform.startswith('win'):
+            ports = ['COM%s' % (i + 1) for i in range(256)]
+        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+            # this excludes your current terminal "/dev/tty"
+            ports = glob.glob('/dev/tty[A-Za-z]*')
+        elif sys.platform.startswith('darwin'):
+            ports = glob.glob('/dev/tty.*')
+        else:
+            raise EnvironmentError('Unsupported platform')
 
-    result = []
-    for port in ports:
-        try:
-            s = serial.Serial(port)
-            s.close()
-            result.append(port)
-        except (OSError, serial.SerialException):
-            pass
-    return result
+        result = []
+        for port in ports:
+            try:
+                s = serial.Serial(port)
+                s.close()
+                result.append(port)
+            except (OSError, serial.SerialException):
+                pass
+        return result
 
-def write_to_port(port,message=""):
-    port = serial.Serial(port=str(port), \
-                         baudrate=115200, \
-                         parity=serial.PARITY_NONE, \
-                         stopbits=serial.STOPBITS_ONE, \
-                         bytesize=serial.EIGHTBITS, \
-                         timeout=0)
-    port.write(bytes(message))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
