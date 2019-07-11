@@ -7,9 +7,11 @@ slovar_trackers = {"tracker_1": 'LHR-3A018118',
                    "tracker_4": 'LHR-1761CD18',
                    "tracker_5": 'right_hand',
                    "tracker_6": 'left_hand'}
-
-right_ = []
-left = []
+fieldnames = ['x_tracker_1', 'y_tracker_1', 'z_tracker_1',
+              'x_tracker_2', 'y_tracker_2', 'z_tracker_2',
+              'x_tracker_3', 'y_tracker_3', 'z_tracker_3',
+              'x_tracker_4', 'y_tracker_4', 'z_tracker_4',
+              'data_on_treadmill']
 
 
 def csv_writer(path, fieldnames, data):
@@ -21,7 +23,6 @@ def csv_writer(path, fieldnames, data):
 
 
 def getinfo():
-    data = {}
     v = triad_openvr.triad_openvr()
     v.print_discovered_objects()
     n = 0
@@ -30,7 +31,7 @@ def getinfo():
             '''print(device)'''
             position_device = v.devices[device].sample(1, 500)
             if position_device and n > 0:
-                csv_writer('p.csv', 'tracker_1', position_device.get_position())
+                csv_writer('p.csv', fieldnames, position_device.get_position())
             """
             for each in v.devices[device].get_pose_euler():
                 txt += "%.4f" % each
@@ -41,7 +42,31 @@ def getinfo():
         except Exception as e:
             pass
 
-def calib():
+
+def getinfo_console():
+    v = triad_openvr.triad_openvr()
+    v.print_discovered_objects()
+    n = 0
+    for device in v.devices:
+        try:
+            '''print(device)'''
+            position_device = v.devices[device].sample(1, 500)
+            if position_device and n > 0:
+                """csv_writer('p.csv', fieldnames, position_device.get_position())"""
+                return fieldnames,position_device.get_position()
+
+            """
+            for each in v.devices[device].get_pose_euler():
+                txt += "%.4f" % each
+                txt += " "
+            print("\r" + txt, end="")"""
+            '''print()'''
+
+        except Exception as e:
+            pass
+
+
+def calibration():
     v = triad_openvr.triad_openvr()
     for device in v.devices:
         position_device = v.devices[device].sample(1, 500)
@@ -65,6 +90,3 @@ def calib():
                            "tracker_6": left_hand}
     return slovar_trackers
 
-
-def total():
-    pass
