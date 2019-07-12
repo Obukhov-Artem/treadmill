@@ -5,6 +5,8 @@ import sys
 import glob
 import serial
 import time
+import csv
+import triad_openvr
 
 
 class SerialThread(QThread):
@@ -27,18 +29,17 @@ class SerialThread(QThread):
                              timeout=0)
         port.write(bytes(self.speed))
 
+
 class TestThread(QThread):
 
     def __init__(self):
         super().__init__()
-        self.speed=0
+        self.speed = 0
 
     def run(self):
         while True:
             print(self.speed)
             time.sleep(0.1)
-
-
 
 
 class Sliderdemo(QWidget):
@@ -89,7 +90,6 @@ class Sliderdemo(QWidget):
         self.tthead.speed = self.speed
         # return self.size
 
-
     def serial_ports(self):
         if sys.platform.startswith('win'):
             ports = ['COM%s' % (i + 1) for i in range(25)]
@@ -110,6 +110,71 @@ class Sliderdemo(QWidget):
             except Exception as se:
                 print(se)
         return result
+
+
+# Сбор информации о трекерах
+class Get_data():
+    slovar_trackers = {"tracker_1": 'LHR-3A018118',
+                       "tracker_2": 'LHR-9224071E',
+                       "tracker_3": 'LHR-89FBFC40',
+                       "tracker_4": 'LHR-1761CD18',
+                       "tracker_5": 'right_hand',
+                       "tracker_6": 'left_hand'}
+
+    fieldnames = ['x_tracker_1', 'y_tracker_1', 'z_tracker_1',
+                  'x_tracker_2', 'y_tracker_2', 'z_tracker_2',
+                  'x_tracker_3', 'y_tracker_3', 'z_tracker_3',
+                  'x_tracker_4', 'y_tracker_4', 'z_tracker_4',
+                  'data_on_treadmill']
+
+    def csv_writer(path, fieldnames, data):
+        with open(path, "w", newline='') as out_file:
+            writer = csv.DictWriter(out_file, delimiter=';', fieldnames=fieldnames)
+            writer.writeheader()
+            for row in data:
+                writer.writerow(row)
+
+    def calibration(self):
+        v = triad_openvr.triad_openvr()
+        for device in v.devices:
+            position_device = v.devices[device].sample(1, 500)
+            if position_device.get_position_x > 0 and position_device.get_position_y > 0.3 and position_device.get_position_y < 1:
+                right_knee = v.devices[device].get_serial()
+            if position_device.get_position_x < 0 and position_device.get_position_y > 0.3 and position_device.get_position_y < 1:
+                left_knee = v.devices[device].get_serial()
+            if position_device.get_position_x > 0 and position_device.get_position_y < 0.3:
+                right_leg = v.devices[device].get_serial()
+            if position_device.get_position_x < 0 and position_device.get_position_y < 0.3:
+                left_leg = v.devices[device].get_serial()
+            if position_device.get_position_x > 0 and position_device.get_position_y > 1:
+                right_hand = v.devices[device].get_serial()
+            if position_device.get_position_x < 0 and position_device.get_position_y > 1:
+                left_hand = v.devices[device].get_serial()
+            self.slovar_trackers = {"tracker_1": right_knee,
+                                    "tracker_2": left_knee,
+                                    "tracker_3": right_leg,
+                                    "tracker_4": left_leg,
+                                    "tracker_5": right_hand,
+                                    "tracker_6": left_hand}
+        return self.slovar_trackers
+
+    def getinfo(self):
+        v = triad_openvr.triad_openvr()
+        v.print_discovered_objects()
+        n = 0
+        data = []
+        data_current = []
+        for serial in self.slover_trackers():
+            device, num_device = self.slover_trackers[serial]
+            try:
+                position_device = v.devices[device].sample(1, 500)
+                if position_device and n > 0:
+                    '''Get_data.csv_writer('p.csv', Get_data.fieldnames, position_device.get_position())'''
+                    data_current.append(position_device.get_position())
+            except Exception as e:
+                data_current.append(data_current[n - 1][num_device])
+                pass
+        data.append(data_current)
 
 
 if __name__ == '__main__':
