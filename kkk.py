@@ -53,7 +53,7 @@ class TestThread(QThread):
 
 
 speed = 100
-port = serial.Serial(port=str('COM5'),
+port = serial.Serial(port=str('COM3'),
                      baudrate=115200,
                      timeout=0)
 thread=TestThread()

@@ -13,7 +13,7 @@ import threading
 class SerialThread(QThread):
     speed_signal = pyqtSignal(bytes)
 
-    def __init__(self, port):
+    def __init__(self, port='COM3'):
         super().__init__()
         self.speed = 32
         self.port = port
@@ -21,31 +21,20 @@ class SerialThread(QThread):
         self.start()
 
     def run(self):
-        self.write_to_port()
-
-    def run1(self):
         while True:
             self.write_to_port()
-            print(self.speed)
             time.sleep(0.1)
-
-    def start(self):
-        self.rt = threading.Thread(target=self.run1)
-        self.rt.start()
 
     def stop(self):
         if self.rt:
             self.rt.join()
 
     def write_to_port(self):
-        port = serial.Serial(port=str('COM5'), \
-                             baudrate=9600, \
-                             parity=serial.PARITY_NONE, \
-                             stopbits=serial.STOPBITS_ONE, \
-                             bytesize=serial.EIGHTBITS, \
-                             timeout=0)
-        port.write(bytes(str(self.speed)+'.'))
-        print((str(self.speed)+'.'))
+        port = serial.Serial('COM3', 115200)
+        x = str(self.speed) + '.'
+        port.write(bytes(x, 'utf-8'))
+        print(port.readline())
+        print(self.speed)
 
 
 class TestThread(QThread):
@@ -59,13 +48,14 @@ class TestThread(QThread):
             time.sleep(0.1)
 
     def write_to_port(self):
-        port = serial.Serial(port=str('COM5'),
+        port = serial.Serial(port=str('COM3'),
                              baudrate=115200,
                              timeout=0)
-        x = str(self.speed)+'.'
-        #port.write(bytes(x, 'utf-8'))
+        x = str(self.speed) + '.'
+        # port.write(bytes(x, 'utf-8'))
         port.write("100.".encode('utf-8'))
         print(port.readall())
+
 
 class Sliderdemo(QWidget):
     def __init__(self, vSl=32, parent=None):
@@ -85,9 +75,9 @@ class Sliderdemo(QWidget):
         sld.valueChanged[int].connect(self.valuechange)
         self.setLayout(vbox)
         sld.valueChanged.connect(lcd.display)
-        self.setWindowTitle("slider")
+        self.setWindowTitle("Тестовый режим")
         # print(self.valuechange())
-        self.thread=TestThread()
+        self.thread = TestThread()
         self.thread.start()
         ports = self.serial_ports()
         """if ports:
@@ -125,10 +115,10 @@ class Sliderdemo(QWidget):
         else:
             raise EnvironmentError('Unsupported platform')
         result = []
-        #s = serial.Serial('COM5', 9600)
+        #s = serial.Serial('COM3', 9600)
         for port in ports:
             try:
-                s = serial.Serial('COM5', 9600)
+                s = serial.Serial('COM3', 9600)
                 s.close()
                 result.append(port)
             except Exception as se:

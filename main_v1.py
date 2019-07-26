@@ -7,44 +7,57 @@ import serial
 import time
 import csv
 import triad_openvr
+import threading
 
 
 class SerialThread(QThread):
     speed_signal = pyqtSignal(bytes)
 
-    def __init__(self, port):
+    def __init__(self, port='COM3'):
         super().__init__()
         self.speed = 32
+        port = serial.Serial('COM3', 115200)
         self.port = port
-
-    def run(self):
-        self.write_to_port()
-
-    def write_to_port(self):
-        port = serial.Serial(port=str(self.port), \
-                             baudrate=115200, \
-                             parity=serial.PARITY_NONE, \
-                             stopbits=serial.STOPBITS_ONE, \
-                             bytesize=serial.EIGHTBITS, \
-                             timeout=0)
-        port.write(bytes(self.speed))
-
-
-class TestThread(QThread):
-
-    def __init__(self):
-        super().__init__()
-        self.speed = 0
+        self.rt = None
+        self.start()
 
     def run(self):
         while True:
-            print(self.speed)
+            self.write_to_port()
             time.sleep(0.1)
 
+    def stop(self):
+        if self.rt:
+            self.rt.join()
+
+    def write_to_port(self):
+        x = str(self.speed) + '.'
+        self.port.write(bytes(x, 'utf-8'))
+        print(self.port.readline())
+
+
+class TestThread(QThread):
+    def __init__(self):
+        super().__init__()
+        self.speed = 32
+
+    def run(self):
+        while True:
+            self.write_to_port()
+            time.sleep(0.1)
+
+    def write_to_port(self):
+        port = serial.Serial('COM3', 115200)
+        x = str(self.speed)
+        # port.write(bytes(x))
+        port.write(bytes(x, 'utf-8'))
+        print(port.readline())
+        time.sleep(0.1)
 
 class Sliderdemo(QWidget):
     def __init__(self, vSl=32, parent=None):
         super(Sliderdemo, self).__init__(parent)
+        self.speed = 32
         lcd = QLCDNumber(self)
         lcd.display(32)
         vbox = QVBoxLayout()
@@ -60,21 +73,19 @@ class Sliderdemo(QWidget):
         sld.valueChanged[int].connect(self.valuechange)
         self.setLayout(vbox)
         sld.valueChanged.connect(lcd.display)
-        self.setWindowTitle("slider")
+        self.setWindowTitle("Тестовый режим")
         # print(self.valuechange())
-        self.tthead = TestThread()
-        self.tthead.start()
-        self.speed = 32
-        self.thread = None
+        self.thread = SerialThread()
+        self.thread.start()
         ports = self.serial_ports()
         if ports:
             print(ports)
 
-            if not self.thread:
-                self.thread = SerialThread(ports[0])
-                self.thread.progressed.connect(self.on_progress)
-                self.thread.finished.connect(self.on_finished)
-                self.thread.start()
+        if not self.thread:
+            self.thread = SerialThread(ports[0])
+            self.thread.progressed.connect(self.on_progress)
+            self.thread.finished.connect(self.on_finished)
+            self.thread.start()
 
     def on_progress(self, value):
         print(value)
@@ -87,12 +98,19 @@ class Sliderdemo(QWidget):
     def valuechange(self, value):
         self.speed = value
         print("__init__vSl -> ", self.speed)
-        self.tthead.speed = self.speed
+        self.thread.speed = self.speed
         # return self.size
 
     def serial_ports(self):
+        """ Lists serial port names
+
+            :raises EnvironmentError:
+                On unsupported or unknown platforms
+            :returns:
+                A list of the serial ports available on the system
+        """
         if sys.platform.startswith('win'):
-            ports = ['COM%s' % (i + 1) for i in range(25)]
+            ports = ['COM%s' % (i + 1) for i in range(256)]
         elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
             # this excludes your current terminal "/dev/tty"
             ports = glob.glob('/dev/tty[A-Za-z]*')
@@ -107,8 +125,8 @@ class Sliderdemo(QWidget):
                 s = serial.Serial(port)
                 s.close()
                 result.append(port)
-            except Exception as se:
-                print(se)
+            except (OSError, serial.SerialException):
+                pass
         return result
 
 
