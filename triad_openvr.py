@@ -94,6 +94,10 @@ class vr_tracked_device():
     def get_serial(self):
         return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_SerialNumber_String).decode('utf-8')
 
+    def get_need_serial(self):
+        if self.vr.getStringTrackedDeviceProperty != '(LHR-1A2114EA, VIVE Tracker Pro MV)' and self.vr.getStringTrackedDeviceProperty != '(LHR-3A018118, VIVE Tracker Pro MV)':
+            return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_SerialNumber_String).decode('utf-8')
+
     def get_model(self):
         return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_ModelNumber_String).decode('utf-8')
 
@@ -199,6 +203,7 @@ class triad_openvr():
         # Initializing object to hold indexes for various tracked objects
         self.object_names = {"Tracking Reference": [], "HMD": [], "Controller": [], "Tracker": []}
         self.devices = {}
+        self.trackers = {}
         self.device_index_map = {}
         poses = self.vr.getDeviceToAbsoluteTrackingPose(openvr.TrackingUniverseStanding, 0,
                                                         openvr.k_unMaxTrackedDeviceCount)
