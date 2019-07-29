@@ -16,6 +16,7 @@ class SerialThread(QThread):
     def __init__(self, port='COM3'):
         super().__init__()
         self.speed = 32
+        port = serial.Serial('COM3', 115200)
         self.port = port
         self.rt = None
         self.start()
@@ -30,11 +31,9 @@ class SerialThread(QThread):
             self.rt.join()
 
     def write_to_port(self):
-        port = serial.Serial('COM3', 115200)
         x = str(self.speed) + '.'
-        port.write(bytes(x, 'utf-8'))
-        print(port.readline())
-        print(self.speed)
+        self.port.write(bytes(x, 'utf-8'))
+        print(self.port.readline())
 
 
 class TestThread(QThread):
@@ -48,18 +47,18 @@ class TestThread(QThread):
             time.sleep(0.1)
 
     def write_to_port(self):
-        port = serial.Serial(port=str('COM3'),
-                             baudrate=115200,
-                             timeout=0)
-        x = str(self.speed) + '.'
-        # port.write(bytes(x, 'utf-8'))
-        port.write("100.".encode('utf-8'))
-        print(port.readall())
+        port = serial.Serial('COM3', 115200)
+        x = str(self.speed)
+        # port.write(bytes(x))
+        port.write(bytes(x, 'utf-8'))
+        print(port.readline())
+        time.sleep(0.1)
 
 
 class Sliderdemo(QWidget):
     def __init__(self, vSl=32, parent=None):
         super(Sliderdemo, self).__init__(parent)
+        self.speed = 32
         lcd = QLCDNumber(self)
         lcd.display(32)
         vbox = QVBoxLayout()
@@ -77,18 +76,17 @@ class Sliderdemo(QWidget):
         sld.valueChanged.connect(lcd.display)
         self.setWindowTitle("Тестовый режим")
         # print(self.valuechange())
-        self.thread = TestThread()
+        self.thread = SerialThread()
         self.thread.start()
         ports = self.serial_ports()
-        """if ports:
+        if ports:
             print(ports)
 
-            if not self.thread:
-                self.thread = SerialThread(ports[0])
-                self.thread.progressed.connect(self.on_progress)
-                self.thread.finished.connect(self.on_finished)
-                self.thread.start()
-        """
+        if not self.thread:
+            self.thread = SerialThread(ports[0])
+            self.thread.progressed.connect(self.on_progress)
+            self.thread.finished.connect(self.on_finished)
+            self.thread.start()
 
     def on_progress(self, value):
         print(value)
@@ -105,29 +103,37 @@ class Sliderdemo(QWidget):
         # return self.size
 
     def serial_ports(self):
+        """ Lists serial port names
+
+            :raises EnvironmentError:
+                On unsupported or unknown platforms
+            :returns:
+                A list of the serial ports available on the system
+        """
         if sys.platform.startswith('win'):
-            ports = ['COM%s' % (i + 1) for i in range(25)]
-        '''elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+            ports = ['COM%s' % (i + 1) for i in range(256)]
+        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
             # this excludes your current terminal "/dev/tty"
             ports = glob.glob('/dev/tty[A-Za-z]*')
         elif sys.platform.startswith('darwin'):
             ports = glob.glob('/dev/tty.*')
         else:
             raise EnvironmentError('Unsupported platform')
+
         result = []
-        #s = serial.Serial('COM3', 9600)
         for port in ports:
             try:
-                s = serial.Serial('COM3', 9600)
+                s = serial.Serial(port)
                 s.close()
                 result.append(port)
-            except Exception as se:
-                print(se)'''
-        return
+            except (OSError, serial.SerialException):
+                pass
+        print(result)
+        return result
 
 
 # Сбор информации о трекерах
-class Get_data():
+class Get_data_trackers():
     slovar_trackers = {"tracker_1": 'LHR-3A018118',
                        "tracker_2": 'LHR-9224071E',
                        "tracker_3": 'LHR-89FBFC40',
@@ -183,12 +189,19 @@ class Get_data():
             try:
                 position_device = v.devices[device].sample(1, 500)
                 if position_device and n > 0:
-                    '''Get_data.csv_writer('p.csv', Get_data.fieldnames, position_device.get_position())'''
+                    '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames, position_device.get_position())'''
+                    '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames, SerialThread.speed'''
                     data_current.append(position_device.get_position())
             except Exception as e:
                 data_current.append(data_current[n - 1][num_device])
                 pass
         data.append(data_current)
+
+
+'''class Info_about_speed():
+    info = []
+    info.append(SerialThread.speed)
+    info.append(Get_data_trackers.getinfo.data)'''
 
 
 if __name__ == '__main__':
