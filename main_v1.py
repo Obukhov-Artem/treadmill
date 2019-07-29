@@ -54,6 +54,7 @@ class TestThread(QThread):
         print(port.readline())
         time.sleep(0.1)
 
+
 class Sliderdemo(QWidget):
     def __init__(self, vSl=32, parent=None):
         super(Sliderdemo, self).__init__(parent)
@@ -127,11 +128,12 @@ class Sliderdemo(QWidget):
                 result.append(port)
             except (OSError, serial.SerialException):
                 pass
+        print(result)
         return result
 
 
 # Сбор информации о трекерах
-class Get_data():
+class Get_data_trackers():
     slovar_trackers = {"tracker_1": 'LHR-3A018118',
                        "tracker_2": 'LHR-9224071E',
                        "tracker_3": 'LHR-89FBFC40',
@@ -187,7 +189,7 @@ class Get_data():
             try:
                 position_device = v.devices[device].sample(1, 500)
                 if position_device and n > 0:
-                    '''Get_data.csv_writer('p.csv', Get_data.fieldnames, position_device.get_position())'''
+                    '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames, position_device.get_position())'''
                     data_current.append(position_device.get_position())
             except Exception as e:
                 data_current.append(data_current[n - 1][num_device])
