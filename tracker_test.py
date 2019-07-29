@@ -44,7 +44,7 @@ if interval:
                 '''print(device)'''
                 position_device = v.devices[device].sample(1, 500)
                 if position_device and n > 0:
-                    print(v.devices[device].get_serial())
+                    print(v.devices[device].get_need_serial())
                     print(position_device.get_position())
                     #переделать пришедшие данные - если по 1 х у z, то сразу в data_current
                     #переделать пришедшие данные - если пришло много, то сразу в data
