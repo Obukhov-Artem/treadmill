@@ -189,8 +189,11 @@ class Get_data_trackers():
             try:
                 position_device = v.devices[device].sample(1, 500)
                 if position_device and n > 0:
-                    '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames, position_device.get_position())'''
-                    data_current.append(position_device.get_position())
+                    if v.devices[device].get_serial() != 'LHR-3A018118' and v.devices[
+                        device].get_serial() != 'LHR-1A2114EA':
+                        '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames,
+                         position_device.get_position())'''
+                        data_current.append(position_device.get_position())
             except Exception as e:
                 data_current.append(data_current[n - 1][num_device])
                 pass
