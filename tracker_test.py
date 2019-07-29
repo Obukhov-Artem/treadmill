@@ -19,9 +19,9 @@ trackers = {'LHR-3A018118': ["tracker_4", 3],
             'LHR-9224071E': ["tracker_3", 2],
             'LHR-89FBFC40': ["tracker_2", 1],
             'LHR-1761CD18': ["tracker_1", 0]}
-print(trackers.keys())
+#print(trackers.keys())
 v = triad_openvr.triad_openvr()
-v.print_discovered_objects()
+# v.print_discovered_objects()
 data = []
 if len(sys.argv) == 1:
     interval = 1 / 500
@@ -44,8 +44,9 @@ if interval:
                 '''print(device)'''
                 position_device = v.devices[device].sample(1, 500)
                 if position_device and n > 0:
-                    print(v.devices[device].get_need_serial())
-                    print(position_device.get_position())
+                    if v.devices[device].get_serial() != 'LHR-3A018118' and v.devices[device].get_serial() != 'LHR-1A2114EA':
+                        print(v.devices[device].get_serial())
+                        print(position_device.get_position())
                     #переделать пришедшие данные - если по 1 х у z, то сразу в data_current
                     #переделать пришедшие данные - если пришло много, то сразу в data
                     data_current.append(position_device.get_position())
