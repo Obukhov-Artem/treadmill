@@ -63,7 +63,7 @@ class Sliderdemo(QWidget):
         lcd.display(32)
         vbox = QVBoxLayout()
         sld = QSlider(Qt.Horizontal, self)
-        sld.setMinimum(32)
+        sld.setMinimum(31)
         sld.setTickInterval(1)
         sld.setMaximum(255)
         sld.setValue(vSl)
@@ -98,7 +98,7 @@ class Sliderdemo(QWidget):
 
     def valuechange(self, value):
         self.speed = value
-        print("__init__vSl -> ", self.speed)
+        # print("__init__vSl -> ", self.speed)
         self.thread.speed = self.speed
         # return self.size
 
@@ -170,16 +170,22 @@ class Get_data_trackers():
                 right_hand = v.devices[device].get_serial()
             if position_device.get_position_x < 0 and position_device.get_position_y > 1:
                 left_hand = v.devices[device].get_serial()
-            self.slovar_trackers = {"tracker_1": right_knee,
-                                    "tracker_2": left_knee,
-                                    "tracker_3": right_leg,
-                                    "tracker_4": left_leg,
-                                    "tracker_5": right_hand,
-                                    "tracker_6": left_hand}
+            self.slovar_trackers = {"Правое_колено": right_knee,  # tracker_1
+                                    "Левое_колено": left_knee,  # tracker_2
+                                    "Правая_голень": right_leg,  # tracker_3
+                                    "Левая_голень": left_leg,  # tracker_4
+                                    "Правая_перчатка": right_hand,  # tracker_5
+                                    "Левая_перчатка": left_hand}  # tracker_6
         return self.slovar_trackers
 
-    def getinfo(self):
+    def get_info(self):
         v = triad_openvr.triad_openvr()
+        v.print_discovered_objects()
+        n = 0
+        data = []
+        data_current = []
+
+        """v = triad_openvr.triad_openvr()
         v.print_discovered_objects()
         n = 0
         data = []
@@ -195,14 +201,13 @@ class Get_data_trackers():
             except Exception as e:
                 data_current.append(data_current[n - 1][num_device])
                 pass
-        data.append(data_current)
+        data.append(data_current)"""
 
 
 '''class Info_about_speed():
     info = []
     info.append(SerialThread.speed)
     info.append(Get_data_trackers.getinfo.data)'''
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

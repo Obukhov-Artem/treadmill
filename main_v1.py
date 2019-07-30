@@ -49,7 +49,6 @@ class TestThread(QThread):
     def write_to_port(self):
         port = serial.Serial('COM3', 115200)
         x = str(self.speed)
-        # port.write(bytes(x))
         port.write(bytes(x, 'utf-8'))
         print(port.readline())
         time.sleep(0.1)
@@ -63,7 +62,7 @@ class Sliderdemo(QWidget):
         lcd.display(32)
         vbox = QVBoxLayout()
         sld = QSlider(Qt.Horizontal, self)
-        sld.setMinimum(32)
+        sld.setMinimum(31)
         sld.setTickInterval(1)
         sld.setMaximum(255)
         sld.setValue(vSl)
@@ -104,7 +103,6 @@ class Sliderdemo(QWidget):
 
     def serial_ports(self):
         """ Lists serial port names
-
             :raises EnvironmentError:
                 On unsupported or unknown platforms
             :returns:
@@ -170,12 +168,12 @@ class Get_data_trackers():
                 right_hand = v.devices[device].get_serial()
             if position_device.get_position_x < 0 and position_device.get_position_y > 1:
                 left_hand = v.devices[device].get_serial()
-            self.slovar_trackers = {"tracker_1": right_knee,
-                                    "tracker_2": left_knee,
-                                    "tracker_3": right_leg,
-                                    "tracker_4": left_leg,
-                                    "tracker_5": right_hand,
-                                    "tracker_6": left_hand}
+            self.slovar_trackers = {"Правое_колено": right_knee,  # tracker_1
+                                    "Левое_колено": left_knee,  # tracker_2
+                                    "Правая_голень": right_leg,  # tracker_3
+                                    "Левая_голень": left_leg,  # tracker_4
+                                    "Правая_перчатка": right_hand,  # tracker_5
+                                    "Левая_перчатка": left_hand}  # tracker_6
         return self.slovar_trackers
 
     def getinfo(self):
