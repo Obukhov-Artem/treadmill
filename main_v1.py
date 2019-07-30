@@ -36,24 +36,6 @@ class SerialThread(QThread):
         print(self.port.readline())
 
 
-class TestThread(QThread):
-    def __init__(self):
-        super().__init__()
-        self.speed = 32
-
-    def run(self):
-        while True:
-            self.write_to_port()
-            time.sleep(0.1)
-
-    def write_to_port(self):
-        port = serial.Serial('COM3', 115200)
-        x = str(self.speed)
-        port.write(bytes(x, 'utf-8'))
-        print(port.readline())
-        time.sleep(0.1)
-
-
 class Sliderdemo(QWidget):
     def __init__(self, vSl=32, parent=None):
         super(Sliderdemo, self).__init__(parent)
@@ -176,7 +158,7 @@ class Get_data_trackers():
                                     "Левая_перчатка": left_hand}  # tracker_6
         return self.slovar_trackers
 
-    def getinfo(self):
+    def get_info(self):
         v = triad_openvr.triad_openvr()
         v.print_discovered_objects()
         n = 0
@@ -185,21 +167,24 @@ class Get_data_trackers():
         for serial in self.slover_trackers():
             device, num_device = self.slover_trackers[serial]
             try:
-                position_device = v.devices[device].sample(1, 500)
+                position_device = v.devices[device].sample(1, 500) + str(SerialThread.speed)
                 if position_device and n > 0:
-                    if v.devices[device].get_serial() != 'LHR-3A018118' and v.devices[
-                        device].get_serial() != 'LHR-1A2114EA':
-                        '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames,
-                         position_device.get_position())'''
+                    if v.devices[device].get_serial() != 'LHR-3A018118' and \
+                            v.devices[device].get_serial() != 'LHR-1A2114EA':
+                        '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames, 
+                                                     position_device.get_position())'''  # 1 Вариант записи в csv
                         data_current.append(position_device.get_position())
             except Exception as e:
                 data_current.append(data_current[n - 1][num_device])
                 pass
         data.append(data_current)
+        '''Get_data_trackers.csv_writer('p.csv', Get_data_trackers.fieldnames,
+                                     data)'''  # 2 Вариант записи в csv
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = Sliderdemo(32)
+    get_data_trackers = Get_data_trackers()
     ex.show()
     sys.exit(app.exec_())
