@@ -1,7 +1,9 @@
 int symbol = 33;
 String txtMsg;
+String bill = "treadmill";
 String NewText;
 boolean stringComplete = false;
+int t = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -10,11 +12,20 @@ void setup() {
 }
 
 void loop() {
-  if (stringComplete)
+  if (t <= 1)
   {
-    Serial.println(txtMsg);
-    stringComplete = false;
-    txtMsg = "";
+    Serial.println(bill);
+    t += 1;
+  }
+  else
+  {
+    bill="";
+    if (stringComplete)
+    {
+      Serial.println(txtMsg);
+      stringComplete = false;
+      txtMsg = "";
+    }
   }
 }
 char inChar;
