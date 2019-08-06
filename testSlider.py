@@ -3,12 +3,21 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QInputDialog
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtWidgets import (QSlider, QApplication, QTextBrowser)
+from PyQt5.QtWidgets import (QSlider, QApplication, QVBoxLayout)
 import sys
 import serial
 import time
 import serial.tools.list_ports
 import glob
+
+current_port = ''
+current_speed = ''
+flag_port = False
+flag_speed = False
+flag_start = False
+stop_speed = 0
+x = 0
+data_in_arduino = 0
 
 
 def Search(__baudrate=115200, timeSleep=5):
@@ -44,7 +53,6 @@ def Search(__baudrate=115200, timeSleep=5):
 
 
 def CheckSerialPortMessage(__activeCOM=Search(), __baudrate=115200, __timeSleep=5):
-    global current_port
     try:
         for __COM in __activeCOM:
 
@@ -62,7 +70,6 @@ def CheckSerialPortMessage(__activeCOM=Search(), __baudrate=115200, __timeSleep=
 
                         if ('treadmill' in date):
                             try:
-                                current_port = __COM
                                 return __COM
                                 break
                             except Exception as e:
@@ -81,9 +88,10 @@ CheckSerialPortMessage()
 
 class SerialThread(QThread):
     def __init__(self):
+        global current_speed, current_port
         super().__init__()
-        self.speed_treadmill = 0
-        port = serial.Serial(self.current_port, self.current_speed)
+        self.speed = 1
+        port = serial.Serial(current_port, current_speed)
         self.port = port
         self.rt = None
         self.start()
@@ -92,14 +100,18 @@ class SerialThread(QThread):
         while True:
             self.write_to_port()
             time.sleep(0.1)
+            # self.text_terminal.setText('Полученные данные на arduino: ' + str(int(data_in_arduino)))
+            # Доработать метод вывода скорости на text_terminal
 
     def stop(self):
         if self.rt:
             self.rt.join()
 
     def write_to_port(self):
-        x = str(self.speed_treadmill) + '.'
+        global x, data_in_arduino
+        x = str(self.speed) + '.'
         self.port.write(bytes(x, 'utf-8'))
+        data_in_arduino = x
         print(self.port.readline())
 
 
@@ -112,75 +124,113 @@ class Sliderdemo(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        vSl = 1
-        self.speed_treadmill = 1
-        self.setWindowTitle('Тестовывй режим')
+        global stop_speed
         self.start.clicked.connect(self.button_start)
         self.current_speed_ports.clicked.connect(self.transform_selection)
-        self.current_COM_port.clicked.connect(self.source_unit)
-        self.speed_treadmill = QSlider(Qt.Horizontal, self)
+        self.current_COM_port.clicked.connect(self.get_dialog)
         self.pushButton.clicked.connect(self.button_connection)
-        self.speed_treadmill.setGeometry(250, 240, 161, 22)
-        self.speed_treadmill.setMinimum(0)
-        self.speed_treadmill.setTickInterval(1)
-        self.speed_treadmill.setMaximum(255)
-        self.speed_treadmill.setValue(vSl)
-        self.speed_treadmill.setTickInterval(10)
-        self.speed_treadmill.valueChanged.connect(self.result.display)
+        self.stop.clicked.connect(self.button_stop)
+        self.setWindowTitle("Тестовый режим")
+        self.result.display(1)
+        self.speed = 0
+        self.text_terminal.setText(
+                    "Вывод терминала")
+        self.sld = QSlider(Qt.Horizontal, self)
+        self.sld.setGeometry(250, 310, 160, 22)
+        self.sld.setMinimum(0)
+        self.sld.setTickInterval(1)
+        self.sld.setMaximum(255)
+        self.sld.setValue(1)
+        self.sld.setTickPosition(QSlider.TicksBelow)
+        self.sld.setTickInterval(10)
+        self.sld.valueChanged[int].connect(self.valuechange)
+        self.sld.valueChanged.connect(self.result.display)
+        self.sld.setEnabled(False)
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.result)
+        vbox.addWidget(self.sld)
         self.show()
 
-    def get_dialog(self, from_=True):
-        try:
-            self.current_port, okBtnPressed = QInputDialog.getItem(self, "Выберите COM-порт", "Доступные COM-Порты",
-                                                   Search(), 0, False)
-        except Exception as e:
-            print(e)
-        '''if okBtnPressed:
-            if from_:
-                self.source.setText("Исходная единица:" + i)
-                self.from_ = i
-            else:
-                try:
-
-                    self.new_2.setText("Новая единица:" + i)
-                    self.to_ = i
-                    self.result.display(self.speed)
-                except Exception:
-                    pass'''
+    def get_dialog(self):
+        global current_port, flag_port
+        current_port, flag_port = QInputDialog.getItem(self, "Выберите COM-порт",
+                                                       "Доступные COM-Порты",
+                                                       Search(), 0, False)
+        return current_port
 
     def transform_selection(self):
+        global current_speed, flag_speed
         speeds = ['1200', '2400', '4800', '9600', '19200', '38400', '57600', '115200']
-        self.current_speed, okBtnPressed = QInputDialog.getItem(self, "Выберите скорость", "Доступные скорости",
-                                                           speeds, 0, False)
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Enter - 1:
-            try:
-                self.result.display(self.speed_treadmill)
-            except Exception:
-                pass
-
-    def source_unit(self):
-        self.get_dialog(True)
-
-    def new_unit(self):
-        self.get_dialog(False)
+        current_speed, flag_speed = QInputDialog.getItem(self, "Выберите скорость", "Доступные скорости",
+                                                         speeds, 0, False)
+        return current_speed
 
     def button_connection(self):
-        try:
-            self.pushButton.setText('Подключено')
-        except Exception as e:
-            self.pushButton.setText(e)
-            print(e)
+        global current_speed, current_port, flag_speed, flag_port, flag_start
+        if flag_speed and flag_port:
+            try:
+                flag_start = True
+
+                self.pushButton.setText('Подключено')
+                self.text_terminal.setText(
+                    "Порт, к которому вы подключились: " + current_port +
+                    " Скорость порта, которую вы выбрали: " + current_speed)
+            except Exception as e:
+                self.pushButton.setText(e)
+                print(e)
+        else:
+            if not flag_port and flag_speed:
+                self.text_terminal.setText(
+                    "Вы не выбрали порт, повторите попытку.")
+            if not flag_speed and flag_port:
+                self.text_terminal.setText(
+                    "Вы не выбрали скорость порта, повторите попытку.")
+            if not flag_speed and not flag_port:
+                self.text_terminal.setText(
+                    "Вы не выбрали ни порт, ни скорость порта. Выберите нужный вам и порт и скорость этого порта. Поторите попытку.")
+
+    def on_progress(self, value):
+        print(value)
+
+    def on_finished(self):
+        self.thread.progressed.disconnect(self.on_progress)
+        self.thread.finished.disconnect(self.on_finished)
+        self.thread = None
+
+    def valuechange(self, value):
+        self.speed = value
+        # print("__init__vSl -> ", self.speed)
+        self.thread.speed = self.speed
+        return self.size
 
     def button_start(self):
-        self.thread = SerialThread()
-        self.thread.start()
-        if not self.thread:
-            # self.thread = SerialThread(ports[0])
-            self.thread.progressed.connect(self.on_progress)
-            self.thread.finished.connect(self.on_finished)
+        global flag_start
+        if flag_start:
+            self.sld.setEnabled(True)
+            self.start.setEnabled(False)
+            self.current_speed_ports.setEnabled(False)
+            self.current_COM_port.setEnabled(False)
+            self.pushButton.setEnabled(False)
+            self.thread = SerialThread()
             self.thread.start()
+            if not self.thread:
+                self.thread.progressed.connect(self.on_progress)
+                self.thread.finished.connect(self.on_finished)
+                self.thread.start()
+
+        else:
+            self.text_terminal.setText(
+                "Вы не выбрали либо порт, либо скорость порта, повторите попытку.")
+
+    def button_stop(self):
+        global x
+        if flag_start:
+            x = 0
+            print(x)
+            sys.exit(app.exec_())
+        else:
+            self.text_terminal.setText(
+                "Данных на arduino пока не поступало.")
 
 
 app = QApplication(sys.argv)
