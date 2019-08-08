@@ -15,9 +15,11 @@ current_speed = ''
 flag_port = False
 flag_speed = False
 flag_start = False
+flag_stop = True
 stop_speed = 0
 x = 0
 data_in_arduino = 0
+print('Loading...')
 
 
 def Search(__baudrate=115200, timeSleep=5):
@@ -47,8 +49,6 @@ def Search(__baudrate=115200, timeSleep=5):
             ErrorAttachment.write(e.__class__.__name__ + "\r")
             ErrorAttachment.close()'''
             continue
-
-    print("Loading...")
     return __COMlist
 
 
@@ -68,17 +68,12 @@ def CheckSerialPortMessage(__activeCOM=Search(), __baudrate=115200, __timeSleep=
 
                         date = port.readline().decode().split()
 
-                        if ('treadmill' in date):
-                            try:
-                                return __COM
-                                break
-                            except Exception as e:
-                                return e
-                        else:
-                            continue
-                    else:
-                        break
-                break
+                        if 'treadmill' in date:
+                            return __COM
+
+                else:
+                    break
+
     except Exception as e:
         return e
 
@@ -100,16 +95,22 @@ class SerialThread(QThread):
         while True:
             self.write_to_port()
             time.sleep(0.1)
-            # self.text_terminal.setText('Полученные данные на arduino: ' + str(int(data_in_arduino)))
-            # Доработать метод вывода скорости на text_terminal
 
     def stop(self):
         if self.rt:
             self.rt.join()
 
     def write_to_port(self):
-        global x, data_in_arduino
-        x = str(self.speed) + '.'
+        global x, data_in_arduino, flag_stop
+        if flag_stop:
+            x = str(self.speed) + '.'
+        if not flag_stop:
+            if self.speed != 0:
+                self.speed -= 1
+                x = str(self.speed) + '.'
+            else:
+                x = str(0) + '.'
+
         self.port.write(bytes(x, 'utf-8'))
         data_in_arduino = x
         print(self.port.readline())
@@ -134,7 +135,7 @@ class Sliderdemo(QMainWindow):
         self.result.display(1)
         self.speed = 0
         self.text_terminal.setText(
-                    "Вывод терминала")
+            "       Проверка подключения")
         self.sld = QSlider(Qt.Horizontal, self)
         self.sld.setGeometry(250, 310, 160, 22)
         self.sld.setMinimum(0)
@@ -223,11 +224,15 @@ class Sliderdemo(QMainWindow):
                 "Вы не выбрали либо порт, либо скорость порта, повторите попытку.")
 
     def button_stop(self):
-        global x
+        global x, flag_stop
         if flag_start:
-            x = 0
-            print(x)
-            sys.exit(app.exec_())
+            flag_stop = False
+            self.sld.setEnabled(False)
+
+            # self.sld.setValue(0)
+            # self.result.display(0)
+            # self.thread.stop()
+            # sys.exit(app.exec_())
         else:
             self.text_terminal.setText(
                 "Данных на arduino пока не поступало.")
