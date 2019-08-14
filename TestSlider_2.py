@@ -16,7 +16,8 @@ flag_port = False
 flag_speed = False
 flag_start = False
 flag_stop = True
-smooth_speed = False
+flag_reload = False
+flag_increase_speed = False
 stop_speed = 0
 x = 0
 data_in_arduino = 0
@@ -87,6 +88,7 @@ class SerialThread(QThread):
         global current_speed, current_port
         super().__init__()
         self.speed = 0
+        self.speed2 = 0
         port = serial.Serial(current_port, current_speed)
         self.port = port
         self.rt = None
@@ -94,6 +96,10 @@ class SerialThread(QThread):
 
     def run(self):
         while True:
+            if self.speed < self.speed2:
+                self.speed += 2
+            if self.speed > self.speed2:
+                self.speed -= 2
             self.write_to_port()
             time.sleep(0.1)
 
@@ -102,22 +108,18 @@ class SerialThread(QThread):
             self.rt.join()
 
     def write_to_port(self):
-        global x, data_in_arduino, flag_stop, smooth_speed
-        if flag_stop and not smooth_speed:
+        global data_in_arduino
+        if flag_stop:
             x = str(self.speed) + '.'
-        if not flag_stop and not smooth_speed:
+        if not flag_stop:
             if self.speed != 0:
                 self.speed -= 1
+                self.speed2 = self.speed
                 x = str(self.speed) + '.'
             else:
                 x = str(0) + '.'
-        if smooth_speed and not flag_stop:
-            if self.speed != self.sld.SliderValueChange:
-                self.speed += 1
-                x = str(self.speed) + '.'
-
+        data_in_arduino = self.speed
         self.port.write(bytes(x, 'utf-8'))
-        data_in_arduino = x
         print(self.port.readline())
 
 
@@ -132,17 +134,17 @@ class Sliderdemo(QMainWindow):
     def initUI(self):
         global stop_speed
         self.start.clicked.connect(self.button_start)
+        self.reload.clicked.connect(self.button_reload)
         self.current_speed_ports.clicked.connect(self.transform_selection)
         self.current_COM_port.clicked.connect(self.get_dialog)
         self.pushButton.clicked.connect(self.button_connection)
         self.stop.clicked.connect(self.button_stop)
         self.setWindowTitle("Тестовый режим")
         self.result.display(0)
-        self.speed = 0
         self.text_terminal.setText(
             "       Проверка подключения")
         self.sld = QSlider(Qt.Horizontal, self)
-        self.sld.setGeometry(250, 310, 160, 22)
+        self.sld.setGeometry(250, 330, 160, 22)
         self.sld.setMinimum(0)
         self.sld.setTickInterval(1)
         self.sld.setMaximum(255)
@@ -152,6 +154,7 @@ class Sliderdemo(QMainWindow):
         self.sld.valueChanged[int].connect(self.valuechange)
         self.sld.valueChanged.connect(self.result.display)
         self.sld.setEnabled(False)
+        self.reload.setEnabled(False)
         vbox = QVBoxLayout()
         vbox.addWidget(self.result)
         vbox.addWidget(self.sld)
@@ -206,11 +209,11 @@ class Sliderdemo(QMainWindow):
     def valuechange(self, value):
         self.speed = value
         # print("__init__vSl -> ", self.speed)
-        self.thread.speed = self.speed
+        self.thread.speed2 = self.speed
         return self.size
 
     def button_start(self):
-        global flag_start, smooth_speed
+        global flag_start, flag_increase_speed
         if flag_start:
             self.sld.setEnabled(True)
             self.start.setEnabled(False)
@@ -218,10 +221,12 @@ class Sliderdemo(QMainWindow):
             self.current_COM_port.setEnabled(False)
             self.pushButton.setEnabled(False)
             self.thread = SerialThread()
+            flag_increase_speed = True
             self.thread.start()
             if not self.thread:
                 self.thread.progressed.connect(self.on_progress)
                 self.thread.finished.connect(self.on_finished)
+                flag_increase_speed = True
                 self.thread.start()
 
         else:
@@ -229,13 +234,12 @@ class Sliderdemo(QMainWindow):
                 "Вы не выбрали либо порт, либо скорость порта, повторите попытку.")
 
     def button_stop(self):
-        global x, flag_stop,flag_start
+        global x, flag_stop
+        self.stop.setEnabled(False)
         if flag_start:
             flag_stop = False
             self.sld.setEnabled(False)
-            flag_start = False
-
-
+            self.reload.setEnabled(True)
 
             # self.sld.setValue(0)
             # self.result.display(0)
@@ -245,11 +249,22 @@ class Sliderdemo(QMainWindow):
             self.text_terminal.setText(
                 "Данных на arduino пока не поступало.")
 
+    def button_reload(self):
+        global flag_start, flag_stop, flag_reload
+        flag_reload = True
+        self.stop.setEnabled(True)
+        flag_stop = True
+        self.result.display(0)
+        self.speed = 0
+        self.sld.setValue(0)
+        self.reload.setEnabled(False)
+        self.sld.setEnabled(True)
+
 
 '''
 if x == '0.':
-    self.sld.setValue(0)
     self.sld.setEnabled(True)
+    self.sld.setValue(0)
 '''
 
 '''difference = self.sld.SliderValueChange - self.speed
@@ -258,7 +273,7 @@ if x == '0.':
                     smooth_speed = True
                 if self.sld.SliderValueChange == self.speed:
                     smooth_speed = False
-'''
+
 app = QApplication(sys.argv)
 
 ex = Sliderdemo()
@@ -266,3 +281,10 @@ ex.show()
 sys.exit(app.exec_())
 
 
+'''
+
+app = QApplication(sys.argv)
+
+ex = Sliderdemo()
+ex.show()
+sys.exit(app.exec_())
