@@ -130,8 +130,8 @@ class SerialThread(QThread):
         if flag_stop:
             x = str(self.speed) + '.'
         if not flag_stop:
-            if self.speed != 0:
-                self.speed -= 1
+            if self.speed >=0 :
+                self.speed =int(self.speed  * 0.87)
                 self.speed2 = self.speed
                 x = str(self.speed) + '.'
             else:
