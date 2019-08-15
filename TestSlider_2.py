@@ -4,11 +4,15 @@ from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QInputDialog
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtWidgets import (QSlider, QApplication, QVBoxLayout)
+from PyQt5.QtWidgets import QMainWindow, QTextEdit, QMenuBar, QApplication
+from PyQt5.QtCore import QObject
+from PyQt5.QtCore import pyqtSignal as Signal
 import sys
 import serial
 import time
 import serial.tools.list_ports
 import glob
+import socket
 
 current_port = ''
 current_speed = ''
@@ -22,6 +26,10 @@ stop_speed = 0
 x = 0
 data_in_arduino = 0
 print('Loading...')
+
+UDP_PORT = 5005
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.connect(('localhost', UDP_PORT))
 
 
 def Search(__baudrate=115200, timeSleep=5):
@@ -96,10 +104,21 @@ class SerialThread(QThread):
 
     def run(self):
         while True:
-            if self.speed < self.speed2:
+            difference = self.speed2 - self.speed
+            if difference >= 40:
                 self.speed += 2
-            if self.speed > self.speed2:
+            if difference >= 20 and difference < 40:
+                self.speed += 1
+            if difference < 20 and difference > 0:
+                self.speed += 1
+            if difference <= -40:
                 self.speed -= 2
+            if difference <= -20 and difference > -40:
+                self.speed -= 1
+            if difference > -20 and difference < 0:
+                self.speed -= 1
+            if self.speed > self.speed2:
+                self.speed -= 1
             self.write_to_port()
             time.sleep(0.1)
 
@@ -108,7 +127,6 @@ class SerialThread(QThread):
             self.rt.join()
 
     def write_to_port(self):
-        global data_in_arduino
         if flag_stop:
             x = str(self.speed) + '.'
         if not flag_stop:
@@ -118,8 +136,9 @@ class SerialThread(QThread):
                 x = str(self.speed) + '.'
             else:
                 x = str(0) + '.'
-        data_in_arduino = self.speed
         self.port.write(bytes(x, 'utf-8'))
+        a = x.replace('.', '')
+        sock.send(bytes(str(a), 'utf-8'))
         print(self.port.readline())
 
 
@@ -234,6 +253,8 @@ class Sliderdemo(QMainWindow):
                 "Вы не выбрали либо порт, либо скорость порта, повторите попытку.")
 
     def button_stop(self):
+        self.result.display(0)
+        self.sld.setValue(0)
         global x, flag_stop
         self.stop.setEnabled(False)
         if flag_start:
@@ -260,31 +281,59 @@ class Sliderdemo(QMainWindow):
         self.reload.setEnabled(False)
         self.sld.setEnabled(True)
 
+class OutputLogger(QObject):
+    emit_write = Signal(str, int)
 
-'''
-if x == '0.':
-    self.sld.setEnabled(True)
-    self.sld.setValue(0)
-'''
+    class Severity:
+        DEBUG = 0
+        ERROR = 1
 
-'''difference = self.sld.SliderValueChange - self.speed
-            if difference >= 30:
-                if self.sld.SliderValueChange != self.speed:
-                    smooth_speed = True
-                if self.sld.SliderValueChange == self.speed:
-                    smooth_speed = False
+    def __init__(self, io_stream, severity):
+        super().__init__()
+
+        self.io_stream = io_stream
+        self.severity = severity
+
+    def write(self, text):
+        self.io_stream.write(text)
+        self.emit_write.emit(text, self.severity)
+
+    def flush(self):
+        self.io_stream.flush()
+
+
+import sys
+OUTPUT_LOGGER_STDOUT = OutputLogger(sys.stdout, OutputLogger.Severity.DEBUG)
+OUTPUT_LOGGER_STDERR = OutputLogger(sys.stderr, OutputLogger.Severity.ERROR)
+
+sys.stdout = OUTPUT_LOGGER_STDOUT
+sys.stderr = OUTPUT_LOGGER_STDERR
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.text_edit = QTextEdit()
+
+        OUTPUT_LOGGER_STDOUT.emit_write.connect(self.append_log)
+        OUTPUT_LOGGER_STDERR.emit_write.connect(self.append_log)
+
+
+        self.setCentralWidget(self.text_edit)
+
+    def append_log(self, text, severity):
+        text = repr(text)
+
+        if severity == OutputLogger.Severity.ERROR:
+            self.text_edit.append('<b>{}</b>'.format(text))
+        else:
+            self.text_edit.append(text)
+
 
 app = QApplication(sys.argv)
-
 ex = Sliderdemo()
 ex.show()
-sys.exit(app.exec_())
-
-
-'''
-
-app = QApplication(sys.argv)
-
-ex = Sliderdemo()
-ex.show()
+mw = MainWindow()
+mw.show()
 sys.exit(app.exec_())

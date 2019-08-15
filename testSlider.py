@@ -101,29 +101,23 @@ class SerialThread(QThread):
 
     def run(self):
         while True:
-            if self.speed < self.speed2:
+            difference = self.speed2 - self.speed
+            if difference >= 40:
                 self.speed += 2
-            if self.speed > self.speed2:
+            if difference >= 20 and difference < 40:
+                self.speed += 1
+            if difference < 20 and difference > 0:
+                self.speed += 1
+            if difference <= -40:
                 self.speed -= 2
+            if difference <= -20 and difference > -40:
+                self.speed -= 1
+            if difference > -20 and difference < 0:
+                self.speed -= 1
+            if self.speed > self.speed2:
+                self.speed -= 1
             self.write_to_port()
             time.sleep(0.1)
-            '''                                     # Доработать кореектное изменение скорости. 
-            a = self.speed - self.speed2
-            if a <= 40:
-                self.speed += 2
-            if a <= 20 and a < 40:
-                self.speed += 1
-            if a > 20 and a < 0:
-                pass
-            if a >= -40:
-                self.speed -= 2
-            if a >= -20 and a < -40:
-                self.speed -= 1
-            if a > -20 and a < 0:
-                pass
-            if self.speed > self.speed2:
-                self.speed -= 1
-                '''
 
     def stop(self):
         if self.rt:
@@ -256,6 +250,8 @@ class Sliderdemo(QMainWindow):
                 "Вы не выбрали либо порт, либо скорость порта, повторите попытку.")
 
     def button_stop(self):
+        self.result.display(0)
+        self.sld.setValue(0)
         global x, flag_stop
         self.stop.setEnabled(False)
         if flag_start:
