@@ -3,11 +3,13 @@ from datetime import datetime
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
+import triad_openvr
 import threading
 import asyncio
 import serial
 import time
 import sys
+import csv
 
 
 class TreadmillControl(QMainWindow):
@@ -20,6 +22,7 @@ class TreadmillControl(QMainWindow):
         self.acceleration = 0
 
         self.MainWhile = False
+        self.ArdWhile = False
         self.RecordingWhile = False
 
         # Предустановка Arduino
@@ -29,6 +32,7 @@ class TreadmillControl(QMainWindow):
             self.ArdComPort.setText(f'''<p align="center">{x[0]}</p>''')
         except:
             self.COM_port = None
+
         self.ard_speed = 115200
         self.arduino = None
         self.data_dispatch = self.ArdDataDispatch.isChecked
@@ -43,6 +47,12 @@ class TreadmillControl(QMainWindow):
         self.R_hand = self.RhandRec.isChecked
         self.R_knee = self.RkneeRec.isChecked
         self.R_shin = self.RshinRec.isChecked
+        self.fieldnames = ['x_tracker_1', 'y_tracker_1', 'z_tracker_1',
+                           'x_tracker_2', 'y_tracker_2', 'z_tracker_2',
+                           'x_tracker_3', 'y_tracker_3', 'z_tracker_3',
+                           'x_tracker_4', 'y_tracker_4', 'z_tracker_4',
+                           'data_on_treadmill']
+        self.calibration()
 
         # Ui
         self.StartButton.clicked.connect(self.start)
@@ -65,6 +75,8 @@ class TreadmillControl(QMainWindow):
         self.ArdComPortSelect.clicked.connect(self.ard_change_port)
         self.ArdSpeedSelect.clicked.connect(self.ard_change_speed)
         #   -- Recording
+        self.StartRecordButton.clicked.connect(self.start_recording)
+        self.StopRecordButton.clicked.connect(self.stop_recording)
         self.DataRecord.toggled.connect(self.record_switch)
 
     def closeEvent(self, event):
@@ -74,12 +86,8 @@ class TreadmillControl(QMainWindow):
         self.MainWhile = True
         main_while_thread = threading.Thread(target=self.main_while)
         main_while_thread.start()
-        if self.data_dispatch:
-            if self.arduino:
-                ard_while_thread = threading.Thread(target=self.ard_while)
-                ard_while_thread.start()
-            else:
-                self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
+        if not self.arduino:
+            self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
 
         self.StartButton.setEnabled(False)
         self.RightBar.setEnabled(False)
@@ -102,11 +110,13 @@ class TreadmillControl(QMainWindow):
                     else:
                         self.current_speed -= 1
 
-                # Отправка данных на ардуину
-                print(self.current_speed)
-                self.Display.display(self.current_speed)  # Вывод скорости на экран
-                time.sleep(0.5)
+                self.Display.display(self.current_speed) # Вывод скорости на экран
+                if self.data_dispatch and self.arduino:
+                    x = f"{self.current_speed}."
+                    self.arduino.write(bytes(x, 'utf-8'))
+                time.sleep(0.1)
 
+        self.ArdWhile = False
         self.SpeedBar.setEnabled(True)
         self.AccelerationBar.setEnabled(True)
         self.RightBar.setEnabled(True)
@@ -114,23 +124,63 @@ class TreadmillControl(QMainWindow):
         self.StartButton.setEnabled(True)
         return
 
-    def ard_while(self):
-        while self.MainWhile:
-            x = f"{self.current_speed}."
-            self.arduino.write(bytes(x, 'utf-8'))
-        return
-
-    def recording_while(self):
-        pass
-
     def stop(self):
+        self.SpeedBox.setValue(0)
+        self.speed = 0
         self.MainWhile = False
         self.RecordingWhile = False
         self.SpeedBar.setEnabled(False)
         self.AccelerationBar.setEnabled(False)
-        self.SpeedBox.setValue(0)
         self.AccelerationBox.setValue(3)  # Ускорение при остановки
         self.StopButton.setEnabled(False)
+
+    def start_recording(self):
+        self.RecordingWhile = True
+        recording_while_thread = threading.Thread(target=self.recording_while)
+        recording_while_thread.start()
+
+        self.StartRecordButton.setEnabled(False)
+        self.StopRecordButton.setEnabled(True)
+
+    def recording_while(self):
+        v = triad_openvr.triad_openvr()
+        # v.print_discovered_objects()
+        n = 0
+        data = []
+
+        while self.RecordingWhile:
+            data_current = []
+
+            for serial in self.slovar_trackers:
+                if self.slovar_trackers[serial]:
+                    try:
+                        current_serial, device = self.slovar_trackers[serial]
+                        position_device = v.devices[device].sample(1, 20)
+
+                        if position_device:
+                            c = position_device.get_position()
+                            data_current.extend([c[0][0], c[1][0], c[2][0]])
+
+                    except Exception as e:
+                        print(e)
+
+            data_current.append(self.current_speed)
+            data.append(data_current)
+            n += 1
+            if n >= 100000:
+                name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+                self.csv_writer(f'{name}.csv', self.fieldnames, data)
+                data = []
+                n = 0
+
+        name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+        self.csv_writer(f'{name}.csv', self.fieldnames, data)
+        self.StartRecordButton.setEnabled(True)
+        self.StopRecordButton.setEnabled(False)
+        return
+
+    def stop_recording(self):
+        self.RecordingWhile = False
 
     def ard_connect(self):
         try:
@@ -147,6 +197,45 @@ class TreadmillControl(QMainWindow):
             else:
                 self.console_output("COM-порт не выбран.", color="#f80000")
             print(e)
+
+    def Search(self, __baudrate=115200):
+        __COMlist = []
+        __COM = ['COM' + str(i) for i in range(100)]
+
+        for _COM in __COM:
+            try:
+                COMport = (serial.Serial(port=_COM,
+                                         baudrate=__baudrate,
+                                         parity=serial.PARITY_NONE,
+                                         stopbits=serial.STOPBITS_ONE,
+                                         bytesize=serial.EIGHTBITS,
+                                         timeout=0))
+                if COMport:
+                    __COMlist.append(_COM)
+
+            except Exception as e:
+                pass
+        return __COMlist
+
+    def CheckSerialPortMessage(self, __baudrate=115200, __timeSleep=5):
+        try:
+            for __COM in self.Search():
+
+                port = serial.Serial(__COM, __baudrate)
+                time.sleep(__timeSleep)
+                large = len(port.readline())
+                port.read(large)
+
+                while large > 3:
+                    for a in range(__timeSleep):
+
+                        date = port.readline().decode().split()
+
+                        if 'treadmill' in date:
+                            return __COM
+
+        except Exception as e:
+            pass
 
     def ard_disconnect(self):
         self.arduino = None
@@ -237,49 +326,65 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         return
 
-    def Search(slef, __baudrate=115200):
-        __COMlist = []
-        __COM = ['COM' + str(i) for i in range(100)]
+    def calibration(self):
+        v = triad_openvr.triad_openvr()
+        right_hand = None
+        right_knee = None
+        right_leg = None
+        left_hand = None
+        left_knee = None
+        left_leg = None
+        pos_devices_array = []
+        for device in v.devices:
+            position_device = v.devices[device].sample(1, 500)
 
-        for _COM in __COM:
-            try:
-                COMport = (serial.Serial(port=_COM,
-                                         baudrate=__baudrate,
-                                         parity=serial.PARITY_NONE,
-                                         stopbits=serial.STOPBITS_ONE,
-                                         bytesize=serial.EIGHTBITS,
-                                         timeout=0))
-                if COMport:
-                    __COMlist.append(_COM)
+            if position_device:
+                pos_devices_array.append((position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                          v.devices[device].get_serial(), v.device_index_map[v.devices[device].index]))
 
-            except Exception as e:
-                pass
-        return __COMlist
+        p_a = sorted(pos_devices_array, key=lambda x: x[1])
+        print(len(p_a), p_a)
+        if len(p_a) > 2:
+            if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
+                if p_a[0][0] < p_a[1][0]:
+                    left_leg = (p_a[0][2], p_a[0][3])
+                    right_leg = (p_a[1][2], p_a[1][3])
+                else:
+                    right_leg = (p_a[0][2], p_a[0][3])
+                    left_leg = (p_a[1][2], p_a[1][3])
+        if len(p_a) > 4:
+            if p_a[2][1] >= 0.5 and p_a[3][1] >= 0.5:
+                if p_a[2][0] < p_a[3][0]:
+                    left_leg = (p_a[2][2], p_a[2][3])
+                    right_leg = (p_a[3][2], p_a[3][3])
+                else:
+                    right_leg = (p_a[2][2], p_a[2][3])
+                    left_leg = (p_a[3][2], p_a[3][3])
+        if len(p_a) > 6:
+            if p_a[4][1] >= 1 and p_a[5][1] >= 1:
+                if p_a[4][0] < p_a[4][0]:
+                    left_leg = (p_a[4][2], p_a[4][3])
+                    right_leg = (p_a[5][2], p_a[5][3])
+                else:
+                    right_leg = (p_a[4][2], p_a[4][3])
+                    left_leg = (p_a[5][2], p_a[5][3])
 
-    def CheckSerialPortMessage(self, __baudrate=115200, __timeSleep=5):
-        try:
-            for __COM in self.Search():
+        self.slovar_trackers = {"Правое_колено": right_knee,
+                                "Левое_колено": left_knee,
+                                "Правая_голень": right_leg,
+                                "Левая_голень": left_leg,
+                                "Правая_перчатка": right_hand,
+                                "Левая_перчатка": left_hand}
 
-                port = serial.Serial(__COM, __baudrate)
-                time.sleep(__timeSleep)
-                large = len(port.readline())
-                port.read(large)
-
-                while large > 3:
-                    for a in range(__timeSleep):
-
-                        date = port.readline().decode().split()
-
-                        if 'treadmill' in date:
-                            return __COM
-
-        except Exception as e:
-            pass
-
+    def csv_writer(self, path, fieldnames, data):
+        with open(path, "w", newline='') as out_file:
+            writer = csv.writer(out_file, delimiter=';')
+            writer.writerow(fieldnames)
+            for row in data:
+                writer.writerow(row)
 
 
 app = QApplication(sys.argv)
 ex = TreadmillControl()
 ex.show()
 sys.exit(app.exec_())
-

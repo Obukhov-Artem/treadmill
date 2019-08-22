@@ -132,11 +132,7 @@ class Get_data_trackers():
                         position_device = v.devices[device].sample(1, 20)
                         if position_device:
                             c = position_device.get_position()
-                            if current_serial != 'LHR-3A018118' and \
-                                    current_serial != 'LHR-1A2114EA':
-                                '''Get_data_trackers.csv_writer('p0.csv', Get_data_trackers.fieldnames, 
-                                                             position_device.get_position())'''  # 1 Вариант записи в csv
-                                data_current.extend([c[0][0], c[1][0], c[2][0]])
+                            data_current.extend([c[0][0], c[1][0], c[2][0]])
 
                     except Exception as e:
                         print(e)
