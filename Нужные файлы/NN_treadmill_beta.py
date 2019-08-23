@@ -129,6 +129,6 @@ if __name__ == '__main__':
             #print(delta)
             y = ex.predict_info(X.reshape(-1, 10, 6))
             if y>0.3:
-                u = 510*(min(abs(data[-1][2]),abs(data[-1][5])))
-                print(y,abs(data[-1][5]), u)
+                u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
+                print(y,abs(data[-1][2]),abs(data[-1][5]), u)
         n += 1
