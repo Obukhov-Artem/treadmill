@@ -10,6 +10,20 @@ import serial
 import time
 import sys
 import csv
+import socket
+
+UDP_PORT = 5005
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind(('', UDP_PORT))
+
+while True:
+    data = sock.recv(1024)
+    if not data:
+        break
+    print(data)
+u = data
+
+sock.close()
 
 
 class TreadmillControl(QMainWindow):
@@ -110,10 +124,11 @@ class TreadmillControl(QMainWindow):
                     else:
                         self.current_speed -= 1
 
-                self.Display.display(self.current_speed) # Вывод скорости на экран
+                self.Display.display(self.current_speed)  # Вывод скорости на экран
                 if self.data_dispatch and self.arduino:
                     x = f"{self.current_speed}."
-                    self.arduino.write(bytes(x, 'utf-8'))
+                    self.arduino.write(bytes(str(u), 'utf-8'))
+                    # Доделаьть реализовку сокетов
                 time.sleep(0.1)
 
         self.ArdWhile = False

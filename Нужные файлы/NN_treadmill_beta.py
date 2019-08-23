@@ -111,6 +111,7 @@ if __name__ == '__main__':
 
     n = 0
     data = []
+    flag = False
     ex = Get_data_trackers()
     ex.set_NN('NN_model_speed471.h5')
     while True:
@@ -126,9 +127,14 @@ if __name__ == '__main__':
                 delta.append(current)
             data = data[1:]
             X = np.array(delta)
-            #print(delta)
+            # print(delta)
             y = ex.predict_info(X.reshape(-1, 10, 6))
-            if y>0.3:
+            if y>0.3 and flag:
                 u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
                 print(y,abs(data[-1][2]),abs(data[-1][5]), u)
+                UDP_PORT = 5005
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.connect(('localhost', UDP_PORT))
+                sock.send(bytes(str(u), 'utf-8'))
+                # Отправка данных на дорожку по сокетам
         n += 1
