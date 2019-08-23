@@ -23,12 +23,12 @@ print(data.shape)
 
 X = data.values[:, :6]
 X_new = np.asarray([data.values[i:i+10,:6] for i in range(len(X) - 10 )])
-X = X_new[:,  :]
-Y_1 = X_new[5:,  :]
-Y_2 = data.values[:,  6:7]
+X = X_new[:12600,  :]
+Y_1 = X_new[5:12605,  :]
+Y_2 = data.values[:12600,  6:7]/255
 print(X.shape,Y_1.shape,Y_2.shape,)
 
-"""
+
 input_layer = Input(shape=(10, 6,))
 h_layer1 = Dense(100, activation='linear')(input_layer)
 h_layer2 = Flatten()(h_layer1)
@@ -43,11 +43,13 @@ model_predict.summary()
 
 
 input_layer = Input(shape=(10, 6,))
-h_layer1 = Dense(100, activation='relu')(input_layer)
+h_layer1 = Dense(100, activation='linear')(input_layer)
 h_layer2 = Flatten()(h_layer1)
 h_layer3 = Dense(50, activation='relu')(h_layer2)
-h_layer4 = Dropout(0.2)(h_layer3)
+h_layer3 = Dense(50, activation='relu')(h_layer3)
+h_layer4 = Dropout(0.3)(h_layer3)
 h_layer5 = Dense(100, activation='relu')(h_layer4)
+h_layer5 = Dense(100, activation='relu')(h_layer5)
 h_layer6 = Dense(10, activation='relu')(h_layer5)
 result_layer = Dense(1, activation="relu")(h_layer6)
 model_speed = Model(inputs=[input_layer], outputs=[result_layer])
@@ -58,7 +60,7 @@ model_speed.summary()
 
  
 model_predict.fit(X, Y_1, epochs=20, batch_size=32, validation_split=0.25, verbose=1)
-model_speed.fit(X, Y_2, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
+model_speed.fit(X, Y_2, epochs=20, batch_size=32, validation_split=0.20, verbose=1)
 
 input_layer = Input(shape=(10, 6,))
 h1 = model_predict(input_layer)
@@ -72,4 +74,3 @@ name_time = str(time.time())[-4:-1]
 model_predict.save("NN_model_predict"+name_time+".h5")
 model_speed.save("NN_model_speed"+name_time+".h5")
 speed_predict.save("NN_speed_predict"+name_time+".h5")
-"""
