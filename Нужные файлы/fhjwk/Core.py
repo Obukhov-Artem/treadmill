@@ -164,7 +164,10 @@ class TreadmillControl(QMainWindow):
                     except Exception as e:
                         print(e)
 
-            data_current.append(self.current_speed)
+            if self.current_speed != 0:
+                data_current.append(1)
+            if self.current_speed == 0:
+                data_current.append(0)
             data.append(data_current)
             n += 1
             if n >= 100000:
