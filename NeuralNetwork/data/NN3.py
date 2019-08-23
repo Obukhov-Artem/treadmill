@@ -8,7 +8,7 @@ import pandas
 import random
 import numpy as np
 import glob
-
+"""
 all_files = glob.glob("*.csv")
 
 li = []
@@ -19,16 +19,23 @@ for filename in all_files:
 
 data = pandas.concat(li, axis=0, ignore_index=True)
 print(data.shape)
-
-
+"""
+data = pandas.read_csv("output11h46m56s.csv", sep=";")
 X = data.values[:, :6]
-X_new = np.asarray([data.values[i:i+10,:6] for i in range(len(X) - 10 )])
-X = X_new[:12600,  :]
-Y_1 = X_new[5:12605,  :]
-Y_2 = data.values[:12600,  6:7]/255
-print(X.shape,Y_1.shape,Y_2.shape,)
-
-
+print(X.shape)
+X_new = []
+for i in range(1,X.shape[0]):
+    current = []
+    for j in range(0,6):
+        current.append(X[i,j]-X[i-1,j])
+    X_new.append(current)
+X_new = np.array(X_new)
+X = np.asarray([X_new[i:i+10,:6] for i in range(X.shape[0] - 10 )])
+print()
+Y_1 = X[10:X.shape[0],  :]
+Y_2 = data.values[10:X.shape[0],  6:7]
+X = X[:X.shape[0]-10,  :]
+print(X.shape,Y_1.shape,Y_2.shape)
 input_layer = Input(shape=(10, 6,))
 h_layer1 = Dense(100, activation='linear')(input_layer)
 h_layer2 = Flatten()(h_layer1)
@@ -45,11 +52,9 @@ model_predict.summary()
 input_layer = Input(shape=(10, 6,))
 h_layer1 = Dense(100, activation='linear')(input_layer)
 h_layer2 = Flatten()(h_layer1)
-h_layer3 = Dense(50, activation='relu')(h_layer2)
-h_layer3 = Dense(50, activation='relu')(h_layer3)
+h_layer3 = Dense(100, activation='linear')(h_layer2)
 h_layer4 = Dropout(0.3)(h_layer3)
-h_layer5 = Dense(100, activation='relu')(h_layer4)
-h_layer5 = Dense(100, activation='relu')(h_layer5)
+h_layer5 = Dense(200, activation='relu')(h_layer4)
 h_layer6 = Dense(10, activation='relu')(h_layer5)
 result_layer = Dense(1, activation="relu")(h_layer6)
 model_speed = Model(inputs=[input_layer], outputs=[result_layer])
@@ -59,8 +64,8 @@ model_speed.summary()
 
 
  
-model_predict.fit(X, Y_1, epochs=20, batch_size=32, validation_split=0.25, verbose=1)
-model_speed.fit(X, Y_2, epochs=20, batch_size=32, validation_split=0.20, verbose=1)
+model_predict.fit(X, Y_1, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
+model_speed.fit(X, Y_2, epochs=50, batch_size=32, validation_split=0.25, verbose=1)
 
 input_layer = Input(shape=(10, 6,))
 h1 = model_predict(input_layer)
