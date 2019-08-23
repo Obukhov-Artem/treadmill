@@ -112,9 +112,9 @@ if __name__ == '__main__':
     n = 0
     data = []
     ex = Get_data_trackers()
-    ex.set_NN('NN_model_speed306.h5')
+    ex.set_NN('NN_model_speed471.h5')
     while True:
-        if n <= 10:
+        if n < 10:
             data.append(ex.get_info())
         else:
             delta = []
@@ -126,6 +126,9 @@ if __name__ == '__main__':
                 delta.append(current)
             data = data[1:]
             X = np.array(delta)
+            #print(delta)
             y = ex.predict_info(X.reshape(-1, 10, 6))
-            print(y)
+            if y>0.3:
+                u = 510*(min(abs(data[-1][2]),abs(data[-1][5])))
+                print(y,abs(data[-1][5]), u)
         n += 1
