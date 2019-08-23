@@ -83,44 +83,49 @@ class Get_data_trackers():
                                 "Правая_перчатка": right_hand,
                                 "Левая_перчатка": left_hand}
 
-    def get_info(self,samples):
+    def get_info(self):
         v = triad_openvr.triad_openvr()
-        v.print_discovered_objects()
-        n = 0
-        a = 0
-        data = []
-        print(self.slovar_trackers)
-        while n < samples:
+        # v.print_discovered_objects()
+        # print(self.slovar_trackers)
+        data_current = []
+        for serial in self.slovar_trackers:
+            if self.slovar_trackers[serial]:
+                try:
+                    current_serial, device = self.slovar_trackers[serial]
+                    position_device = v.devices[device].sample(1, 20)
+                    if position_device:
+                        c = position_device.get_position()
 
-            data_current = []
-            for serial in self.slovar_trackers:
-                if self.slovar_trackers[serial]:
-                    try:
-                        current_serial, device = self.slovar_trackers[serial]
-                        position_device = v.devices[device].sample(1, 20)
-                        if position_device:
-                            c = position_device.get_position()
-                            if current_serial != 'LHR-3A018118' and \
-                                    current_serial != 'LHR-1A2114EA':
-                                '''Get_data_trackers.csv_writer('p0.csv', Get_data_trackers.fieldnames, 
-                                                             position_device.get_position())'''  # 1 Вариант записи в csv
-                                data_current.extend([c[0][0], c[1][0], c[2][0]])
+                        data_current.extend([c[0][0], c[1][0], c[2][0]])
 
-                    except Exception as e:
-                        print(e)
+                except Exception as e:
+                    print(e)
+        return data_current
 
-            data_current.append(data)
-            data.append(data_current)
-        return data
-
-    def predict_info(self,data):
+    def predict_info(self, data):
         new_data = self.NN.predict(data)
         return new_data
 
 
 if __name__ == '__main__':
+
+    n = 0
+    data = []
     ex = Get_data_trackers()
+    ex.set_NN('NN_model_speed306.h5')
     while True:
-        data = ex.get_info(10)
-        y = ex.predict_info(data)
-        print(y)
+        if n <= 10:
+            data.append(ex.get_info())
+        else:
+            delta = []
+            data.append(ex.get_info())
+            for i in range(1, len(data)):
+                current = []
+                for j in range(0, 6):
+                    current.append(data[i][j] - data[i - 1][j])
+                delta.append(current)
+            data = data[1:]
+            X = np.array(delta)
+            y = ex.predict_info(X.reshape(-1, 10, 6))
+            print(y)
+        n += 1
