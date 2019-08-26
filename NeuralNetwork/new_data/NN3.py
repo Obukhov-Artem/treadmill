@@ -22,7 +22,6 @@ print(data.shape)
 """
 data = pandas.read_csv("test.csv", sep=";")
 X = data.values[:, :6]
-print(X.shape)
 X_new = []
 for i in range(1,X.shape[0]):
     current = []
@@ -30,7 +29,7 @@ for i in range(1,X.shape[0]):
         current.append(X[i,j]-X[i-1,j])
     X_new.append(current)
 X_new = np.array(X_new)
-SAMPLES = 10
+SAMPLES = 30
 X = np.asarray([X_new[i:i+SAMPLES,:6] for i in range(X.shape[0] - SAMPLES )])
 print()
 #Y_1 = X[10:X.shape[0],  :]
@@ -42,21 +41,24 @@ print()
 #    else:
 #        Y_2[i] = 0
 X = X[:X.shape[0],  :]
-Y = data.values[0:X.shape[0],  6:7]
+Y = to_cat(data.values[:X.shape[0],  6:7],4)
+print(X.shape)
+X_1 = X[:X.shape[0]-10,  :]
+X_2 = X[10:X.shape[0],  :]
 #print(X.shape,Y_1.shape,Y_2.shape)
-"""
-input_layer = Input(shape=(10, 6,))
+
+input_layer = Input(shape=(SAMPLES, 6,))
 h_layer1 = Dense(100, activation='linear')(input_layer)
 h_layer2 = Flatten()(h_layer1)
 h_layer3 = Dense(50, activation='linear')(h_layer2)
 h_layer4 = Dropout(0.2)(h_layer3)
 h_layer5 = Dense(100, activation='linear')(h_layer4)
-h_layer6 = Dense(60, activation='linear')(h_layer5)
-result_layer = Reshape((10, 6))(h_layer6)
+h_layer6 = Dense(SAMPLES*6, activation='linear')(h_layer5)
+result_layer = Reshape((SAMPLES, 6))(h_layer6)
 model_predict = Model(inputs=[input_layer], outputs=[result_layer])
 model_predict.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 model_predict.summary()
-"""
+
 
 input_layer = Input(shape=(SAMPLES, 6,))
 h_layer1 = Dense(100, activation='relu')(input_layer)
@@ -65,27 +67,28 @@ h_layer3 = Dense(100, activation='relu')(h_layer2)
 h_layer4 = Dropout(0.3)(h_layer3)
 h_layer5 = Dense(200, activation='relu')(h_layer4)
 h_layer6 = Dense(10, activation='relu')(h_layer5)
-result_layer = Dense(1, activation="linear")(h_layer6)
+result_layer = Dense(4, activation="linear")(h_layer6)
 #result_layer2 = Dense(1, activation="softmax")(h_layer6)
 model_speed = Model(inputs=[input_layer], outputs=[result_layer])
-model_speed.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
+model_speed.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+#model_speed.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 model_speed.summary()
 
 
-model_speed.fit(X, Y, epochs=15, batch_size=32, validation_split=0.25, verbose=1)
-"""
- 
-model_predict.fit(X, Y_1, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
+model_speed.fit(X, Y, epochs=12, batch_size=64, validation_split=0.20, verbose=1)
 
-input_layer = Input(shape=(10, 6,))
+ 
+model_predict.fit(X_1, X_2, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
+
+input_layer = Input(shape=(SAMPLES, 6,))
 h1 = model_predict(input_layer)
 result_layer = model_speed(h1)
 speed_predict = Model(inputs=input_layer, outputs=result_layer)
 speed_predict.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 speed_predict.summary()
-"""
+
 import time
 name_time = str(time.time())[-4:-1]
-#model_predict.save("NN_model_predict"+name_time+".h5")
+model_predict.save("NN_model_predict"+name_time+".h5")
 model_speed.save("NN_model_speed_new"+name_time+".h5")
-#speed_predict.save("NN_speed_predict"+name_time+".h5")
+speed_predict.save("NN_speed_predict"+name_time+".h5")
