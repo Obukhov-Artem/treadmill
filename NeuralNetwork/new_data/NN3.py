@@ -20,7 +20,7 @@ for filename in all_files:
 data = pandas.concat(li, axis=0, ignore_index=True)
 print(data.shape)
 """
-data = pandas.read_csv("output15h33m35s.csv", sep=";")
+data = pandas.read_csv("test.csv", sep=";")
 X = data.values[:, :6]
 print(X.shape)
 X_new = []
@@ -30,19 +30,20 @@ for i in range(1,X.shape[0]):
         current.append(X[i,j]-X[i-1,j])
     X_new.append(current)
 X_new = np.array(X_new)
-X = np.asarray([X_new[i:i+10,:6] for i in range(X.shape[0] - 10 )])
+SAMPLES = 10
+X = np.asarray([X_new[i:i+SAMPLES,:6] for i in range(X.shape[0] - SAMPLES )])
 print()
 #Y_1 = X[10:X.shape[0],  :]
-Y_1 = data.values[0:X.shape[0],  6:7]
-Y_2 = data.values[0:X.shape[0],  6:7]
-for i in range(Y_1.shape[0]):
-    if Y_2[i]>3:
-        Y_2[i] = 1
-    else:
-        Y_2[i] = 0
+#Y_1 = data.values[0:X.shape[0],  6:7]
+#Y_2 = data.values[0:X.shape[0],  6:7]
+#for i in range(Y_1.shape[0]):
+#    if Y_2[i]>3:
+#        Y_2[i] = 1
+#    else:
+#        Y_2[i] = 0
 X = X[:X.shape[0],  :]
-print(X.shape,Y_1.shape,Y_2.shape)
-print(X[2940],Y_2[2940])
+Y = data.values[0:X.shape[0],  6:7]
+#print(X.shape,Y_1.shape,Y_2.shape)
 """
 input_layer = Input(shape=(10, 6,))
 h_layer1 = Dense(100, activation='linear')(input_layer)
@@ -57,7 +58,7 @@ model_predict.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 model_predict.summary()
 """
 
-input_layer = Input(shape=(10, 6,))
+input_layer = Input(shape=(SAMPLES, 6,))
 h_layer1 = Dense(100, activation='relu')(input_layer)
 h_layer2 = Flatten()(h_layer1)
 h_layer3 = Dense(100, activation='relu')(h_layer2)
@@ -65,13 +66,13 @@ h_layer4 = Dropout(0.3)(h_layer3)
 h_layer5 = Dense(200, activation='relu')(h_layer4)
 h_layer6 = Dense(10, activation='relu')(h_layer5)
 result_layer = Dense(1, activation="linear")(h_layer6)
-result_layer2 = Dense(1, activation="softmax")(h_layer6)
-model_speed = Model(inputs=[input_layer], outputs=[result_layer, result_layer2])
+#result_layer2 = Dense(1, activation="softmax")(h_layer6)
+model_speed = Model(inputs=[input_layer], outputs=[result_layer])
 model_speed.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 model_speed.summary()
 
 
-model_speed.fit(X, [Y_1,Y_2], epochs=40, batch_size=32, validation_split=0.15, verbose=1)
+model_speed.fit(X, Y, epochs=15, batch_size=32, validation_split=0.25, verbose=1)
 """
  
 model_predict.fit(X, Y_1, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
@@ -86,5 +87,5 @@ speed_predict.summary()
 import time
 name_time = str(time.time())[-4:-1]
 #model_predict.save("NN_model_predict"+name_time+".h5")
-model_speed.save("NN_model_speed"+name_time+".h5")
+model_speed.save("NN_model_speed_new"+name_time+".h5")
 #speed_predict.save("NN_speed_predict"+name_time+".h5")
