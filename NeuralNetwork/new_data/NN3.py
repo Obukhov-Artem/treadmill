@@ -29,24 +29,15 @@ for i in range(1,X.shape[0]):
         current.append(X[i,j]-X[i-1,j])
     X_new.append(current)
 X_new = np.array(X_new)
-SAMPLES = 10
+SAMPLES = 5
 X = np.asarray([X_new[i:i+SAMPLES,:6] for i in range(X.shape[0] - SAMPLES )])
 print()
-#Y_1 = X[10:X.shape[0],  :]
-#Y_1 = data.values[0:X.shape[0],  6:7]
-#Y_2 = data.values[0:X.shape[0],  6:7]
-#for i in range(Y_1.shape[0]):
-#    if Y_2[i]>3:
-#        Y_2[i] = 1
-#    else:
-#        Y_2[i] = 0
 X = X[:X.shape[0],  :]
 print(X[0],X[1])
-Y_speed = to_cat(data.values[SAMPLES*3:X.shape[0] ,  6:7],4)
 print(X.shape)
-X_predict = X[:X.shape[0]- SAMPLES*3-10,  :]
-#X_2 = X[10:X.shape[0]-25,  :]
+X_predict = X[:X.shape[0]- SAMPLES*4,  :]
 X_speed = np.asarray([X_new[i:i+SAMPLES*3,:6] for i in range(X.shape[0] - SAMPLES*3 )])
+Y_speed = to_cat(data.values[SAMPLES*3:X.shape[0] ,  6:7],4)
 Y_predict = np.asarray([X_new[i:i+SAMPLES*3,:6] for i in range(SAMPLES, X.shape[0] - SAMPLES*3 )])
 #print(X.shape,Y_1.shape,Y_2.shape)
 print(X.shape,X_speed.shape,Y_speed.shape, X_predict.shape, Y_predict.shape)
@@ -65,16 +56,14 @@ model_predict.summary()
 
 
 input_layer = Input(shape=(SAMPLES*3, 6,))
-h_layer1 = Dense(200, activation='relu')(input_layer)
+h_layer1 = Dense(100, activation='relu')(input_layer)
 h_layer2 = Flatten()(h_layer1)
 h_layer3 = Dense(100, activation='relu')(h_layer2)
 h_layer4 = Dropout(0.1)(h_layer3)
 h_layer5 = Dense(100, activation='relu')(h_layer4)
 result_layer = Dense(4, activation="softmax")(h_layer5)
-#result_layer2 = Dense(1, activation="softmax")(h_layer6)
 model_speed = Model(inputs=[input_layer], outputs=[result_layer])
 model_speed.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-#model_speed.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 model_speed.summary()
 
 
@@ -82,16 +71,16 @@ model_speed.fit(X_speed, Y_speed, epochs=15, batch_size=64, validation_split=0.2
 
  
 model_predict.fit(X_predict, Y_predict, epochs=15, batch_size=64, validation_split=0.20, verbose=1)
-
+"""
 input_layer = Input(shape=(SAMPLES, 6,))
 h1 = model_predict(input_layer)
 result_layer = model_speed(h1)
 speed_predict = Model(inputs=input_layer, outputs=result_layer)
 speed_predict.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 speed_predict.summary()
-
+"""
 import time
-name_time = str(time.time())[-4:-1]
-model_predict.save("NN_model_predict"+name_time+".h5")
-model_speed.save("NN_model_speed_new"+name_time+".h5")
-speed_predict.save("NN_speed_predict"+name_time+".h5")
+name_time = str(time.time())[-5:-1]
+model_predict.save("NN_predict"+name_time+".h5")
+model_speed.save("NN_speed"+name_time+".h5")
+#speed_predict.save("NN_speed_predict"+name_time+".h5")
