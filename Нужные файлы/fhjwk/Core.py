@@ -11,7 +11,7 @@ import time
 import sys
 import csv
 import socket
-
+RATE = 100
 UDP_PORT = 5005
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', UDP_PORT))
@@ -170,7 +170,7 @@ class TreadmillControl(QMainWindow):
                 if self.slovar_trackers[serial]:
                     try:
                         current_serial, device = self.slovar_trackers[serial]
-                        position_device = v.devices[device].sample(1, 20)
+                        position_device = v.devices[device].sample(1, RATE)
 
                         if position_device:
                             c = position_device.get_position()
