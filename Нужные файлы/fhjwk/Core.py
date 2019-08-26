@@ -10,8 +10,10 @@ import serial
 import time
 import sys
 import csv
+u = 0
+RATE = 500
 import socket
-RATE = 100
+'''ATE = 100
 UDP_PORT = 5005
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', UDP_PORT))
@@ -24,7 +26,7 @@ while True:
 u = data
 
 sock.close()
-
+'''
 
 class TreadmillControl(QMainWindow):
     def __init__(self):
@@ -127,7 +129,7 @@ class TreadmillControl(QMainWindow):
                 self.Display.display(self.current_speed)  # Вывод скорости на экран
                 if self.data_dispatch and self.arduino:
                     x = f"{self.current_speed}."
-                    self.arduino.write(bytes(str(u), 'utf-8'))
+                    self.arduino.write(bytes(str(x), 'utf-8'))
                     # Доделаьть реализовку сокетов
                 time.sleep(0.1)
 
@@ -151,6 +153,7 @@ class TreadmillControl(QMainWindow):
 
     def start_recording(self):
         self.RecordingWhile = True
+        self.start = time.time()
         recording_while_thread = threading.Thread(target=self.recording_while)
         recording_while_thread.start()
 
@@ -162,34 +165,37 @@ class TreadmillControl(QMainWindow):
         # v.print_discovered_objects()
         n = 0
         data = []
-
         while self.RecordingWhile:
-            data_current = []
+            if time.time()>self.start+1/25:
+                self.start = time.time()
+                data_current = []
 
-            for serial in self.slovar_trackers:
-                if self.slovar_trackers[serial]:
-                    try:
-                        current_serial, device = self.slovar_trackers[serial]
-                        position_device = v.devices[device].sample(1, RATE)
+                for serial in self.slovar_trackers:
+                    if self.slovar_trackers[serial]:
+                        try:
+                            current_serial, device = self.slovar_trackers[serial]
+                            position_device = v.devices[device].sample(1, RATE)
 
-                        if position_device:
-                            c = position_device.get_position()
-                            data_current.extend([c[0][0], c[1][0], c[2][0]])
+                            if position_device:
+                                c = position_device.get_position()
+                                data_current.extend([c[0][0], c[1][0], c[2][0]])
 
-                    except Exception as e:
-                        print(e)
+                        except Exception as e:
+                            print(e)
 
-            if self.current_speed != 0:
-                data_current.append(1)
-            if self.current_speed == 0:
-                data_current.append(0)
-            data.append(data_current)
-            n += 1
-            if n >= 100000:
-                name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
-                self.csv_writer(f'{name}.csv', self.fieldnames, data)
-                data = []
-                n = 0
+                #if self.current_speed != 0:
+                #    data_current.append(1)
+                #if self.current_speed == 0:
+                #    data_current.append(0)
+                data_current.append(self.current_speed)
+                data_current.append(datetime.now())
+                data.append(data_current)
+                n += 1
+                if n >= 100000:
+                    name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+                    self.csv_writer(f'{name}.csv', self.fieldnames, data)
+                    data = []
+                    n = 0
 
         name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
         self.csv_writer(f'{name}.csv', self.fieldnames, data)

@@ -129,9 +129,10 @@ if __name__ == '__main__':
             X = np.array(delta)
             # print(delta)
             y = ex.predict_info(X.reshape(-1, 10, 6))
+            u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
+            print(y,abs(data[-1][2]),abs(data[-1][5]), u)
             if y>0.3 and flag:
-                u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
-                print(y,abs(data[-1][2]),abs(data[-1][5]), u)
+
                 UDP_PORT = 5005
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.connect(('localhost', UDP_PORT))
