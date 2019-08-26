@@ -118,7 +118,7 @@ if __name__ == '__main__':
     while True:
         if time.time() > start + 1 / 25:
             start = time.time()
-            if n < 10:
+            if n < 25:
                 data.append(ex.get_info())
             else:
                 delta = []
@@ -131,10 +131,10 @@ if __name__ == '__main__':
                 data = data[1:]
                 X = np.array(delta)
                 # print(delta)
-                y = ex.predict_info(X.reshape(-1, 10, 6))
+                y = ex.predict_info(X.reshape(-1, 25, 6))
                 #u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
                 #print(y,abs(data[-1][2]),abs(data[-1][5]), u)
-                print(y)
+                print(np.argmax(y))
                 if y>0.3 and flag:
 
                     UDP_PORT = 5005

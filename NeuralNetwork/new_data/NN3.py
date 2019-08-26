@@ -29,7 +29,7 @@ for i in range(1,X.shape[0]):
         current.append(X[i,j]-X[i-1,j])
     X_new.append(current)
 X_new = np.array(X_new)
-SAMPLES = 30
+SAMPLES = 25
 X = np.asarray([X_new[i:i+SAMPLES,:6] for i in range(X.shape[0] - SAMPLES )])
 print()
 #Y_1 = X[10:X.shape[0],  :]
@@ -41,6 +41,7 @@ print()
 #    else:
 #        Y_2[i] = 0
 X = X[:X.shape[0],  :]
+print(X[0],X[1])
 Y = to_cat(data.values[:X.shape[0],  6:7],4)
 print(X.shape)
 X_1 = X[:X.shape[0]-10,  :]
@@ -51,7 +52,7 @@ input_layer = Input(shape=(SAMPLES, 6,))
 h_layer1 = Dense(100, activation='linear')(input_layer)
 h_layer2 = Flatten()(h_layer1)
 h_layer3 = Dense(50, activation='linear')(h_layer2)
-h_layer4 = Dropout(0.2)(h_layer3)
+h_layer4 = Dropout(0.1)(h_layer3)
 h_layer5 = Dense(100, activation='linear')(h_layer4)
 h_layer6 = Dense(SAMPLES*6, activation='linear')(h_layer5)
 result_layer = Reshape((SAMPLES, 6))(h_layer6)
@@ -67,7 +68,7 @@ h_layer3 = Dense(100, activation='relu')(h_layer2)
 h_layer4 = Dropout(0.3)(h_layer3)
 h_layer5 = Dense(200, activation='relu')(h_layer4)
 h_layer6 = Dense(10, activation='relu')(h_layer5)
-result_layer = Dense(4, activation="linear")(h_layer6)
+result_layer = Dense(4, activation="softmax")(h_layer6)
 #result_layer2 = Dense(1, activation="softmax")(h_layer6)
 model_speed = Model(inputs=[input_layer], outputs=[result_layer])
 model_speed.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -84,7 +85,7 @@ input_layer = Input(shape=(SAMPLES, 6,))
 h1 = model_predict(input_layer)
 result_layer = model_speed(h1)
 speed_predict = Model(inputs=input_layer, outputs=result_layer)
-speed_predict.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
+speed_predict.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 speed_predict.summary()
 
 import time
