@@ -22,9 +22,10 @@ class Get_data_trackers():
         self.calibration()
         self.NN = None
 
-    def set_NN(self, model):
+    def set_NN(self, model,model2=None):
 
         self.NN = load_model(model)
+        self.NN2 = load_model(model2)
 
     def csv_writer(self, path, fieldnames, data):
         with open(path, "w", newline='') as out_file:
@@ -102,7 +103,11 @@ class Get_data_trackers():
                     print(e)
         return data_current
 
-    def predict_info(self, data):
+    def predict_data(self, data):
+        new_data = self.NN2.predict(data)
+        return new_data
+
+    def predict_speed(self, data):
         new_data = self.NN.predict(data)
         return new_data
 
@@ -113,12 +118,12 @@ if __name__ == '__main__':
     data = []
     flag = False
     ex = Get_data_trackers()
-    ex.set_NN('NN_model_speed_new322.h5')
+    ex.set_NN('NN_speed7931.h5', 'NN_predict7931.h5')
     start = time.time()
     while True:
         if time.time() > start + 1 / 25:
             start = time.time()
-            if n < 25:
+            if n < 5:
                 data.append(ex.get_info())
             else:
                 delta = []
@@ -131,7 +136,9 @@ if __name__ == '__main__':
                 data = data[1:]
                 X = np.array(delta)
                 # print(delta)
-                y = ex.predict_info(X.reshape(-1, 25, 6))
+                future_data = ex.predict_data(X.reshape(-1, 5, 6))
+                print(future_data.shape)
+                y = ex.predict_speed(future_data[10:,:])
                 #u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
                 #print(y,abs(data[-1][2]),abs(data[-1][5]), u)
                 print(np.argmax(y))
