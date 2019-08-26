@@ -113,29 +113,33 @@ if __name__ == '__main__':
     data = []
     flag = False
     ex = Get_data_trackers()
-    ex.set_NN('NN_model_speed471.h5')
+    ex.set_NN('NN_model_speed_new322.h5')
+    start = time.time()
     while True:
-        if n < 10:
-            data.append(ex.get_info())
-        else:
-            delta = []
-            data.append(ex.get_info())
-            for i in range(1, len(data)):
-                current = []
-                for j in range(0, 6):
-                    current.append(data[i][j] - data[i - 1][j])
-                delta.append(current)
-            data = data[1:]
-            X = np.array(delta)
-            # print(delta)
-            y = ex.predict_info(X.reshape(-1, 10, 6))
-            u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
-            print(y,abs(data[-1][2]),abs(data[-1][5]), u)
-            if y>0.3 and flag:
+        if time.time() > start + 1 / 25:
+            start = time.time()
+            if n < 10:
+                data.append(ex.get_info())
+            else:
+                delta = []
+                data.append(ex.get_info())
+                for i in range(1, len(data)):
+                    current = []
+                    for j in range(0, 6):
+                        current.append(data[i][j] - data[i - 1][j])
+                    delta.append(current)
+                data = data[1:]
+                X = np.array(delta)
+                # print(delta)
+                y = ex.predict_info(X.reshape(-1, 10, 6))
+                #u = min(255*(min(abs(data[-1][2]),abs(data[-1][5]))), 255)
+                #print(y,abs(data[-1][2]),abs(data[-1][5]), u)
+                print(y)
+                if y>0.3 and flag:
 
-                UDP_PORT = 5005
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.connect(('localhost', UDP_PORT))
-                sock.send(bytes(str(u), 'utf-8'))
-                # Отправка данных на дорожку по сокетам
-        n += 1
+                    UDP_PORT = 5005
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sock.connect(('localhost', UDP_PORT))
+                    sock.send(bytes(str("u"), 'utf-8'))
+                    # Отправка данных на дорожку по сокетам
+            n += 1
