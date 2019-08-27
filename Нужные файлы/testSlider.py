@@ -10,6 +10,7 @@ import time
 import serial.tools.list_ports
 import glob
 import socket
+from datetime import datetime
 
 current_port = ''
 current_speed = ''
@@ -117,6 +118,7 @@ class SerialThread(QThread):
             if self.speed > self.speed2:
                 self.speed -= 1
             self.write_to_port()
+            Sliderdemo.result.display(self.self.speed)
             time.sleep(0.1)
 
     def stop(self):
@@ -124,6 +126,7 @@ class SerialThread(QThread):
             self.rt.join()
 
     def write_to_port(self):
+        global x
         if flag_stop:
             x = str(self.speed) + '.'
         if not flag_stop:
@@ -158,7 +161,7 @@ class Sliderdemo(QMainWindow):
         self.setWindowTitle("Тестовый режим")
         self.result.display(0)
         self.text_terminal.setText(
-            "       Проверка подключения")
+            "            Проверка подключения")
         self.sld = QSlider(Qt.Horizontal, self)
         self.sld.setGeometry(250, 330, 160, 22)
         self.sld.setMinimum(0)
@@ -178,10 +181,15 @@ class Sliderdemo(QMainWindow):
 
     def get_dialog(self):
         global current_port, flag_port
-        current_port, flag_port = QInputDialog.getItem(self, "Выберите COM-порт",
-                                                       "Доступные COM-Порты",
-                                                       Search(), 0, False)
-        return current_port
+        check = Search()
+        if check:
+            current_port, flag_port = QInputDialog.getItem(self, "Выберите COM-порт",
+                                                           "Доступные COM-Порты",
+                                                           Search(), 0, False)
+            if flag_port:
+                return current_port
+        else:
+            self.text_terminal.setText('            СOM-Порты не найдены.')
 
     def transform_selection(self):
         global current_speed, flag_speed
@@ -227,6 +235,18 @@ class Sliderdemo(QMainWindow):
         # print("__init__vSl -> ", self.speed)
         self.thread.speed2 = self.speed
         return self.size
+
+    def console_output(self, info, *, color: str = ""):
+        self.ConsoleOutput.append(
+            f'''
+                <div style="margin: 2px;">
+                        <span>[{datetime.strftime(datetime.now(), "%H:%M:%S")}]</span>
+                        <span style="color:{color};">  {info}  </span>
+                </div>
+            ''')
+        self.ConsoleOutput.verticalScrollBar().setValue(self.ConsoleOutput.verticalScrollBar().maximum())
+        self.ConsoleOutput.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        return
 
     def button_start(self):
         global flag_start, flag_increase_speed
