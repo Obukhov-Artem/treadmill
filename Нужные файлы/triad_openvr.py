@@ -79,6 +79,8 @@ class Pose_sample_buffer():
     def get_position_y(self):
         return (self.y)
 
+    def get_position_z(self):
+        return self.z
 
 def get_pose(vr_obj):
     return vr_obj.getDeviceToAbsoluteTrackingPose(openvr.TrackingUniverseStanding, 0, openvr.k_unMaxTrackedDeviceCount)

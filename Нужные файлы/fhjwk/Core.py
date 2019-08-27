@@ -95,6 +95,7 @@ class TreadmillControl(QMainWindow):
         self.StopRecordButton.clicked.connect(self.stop_recording)
         self.DataRecord.toggled.connect(self.record_switch)
 
+
     def closeEvent(self, event):
         self.stop()
 
@@ -112,8 +113,29 @@ class TreadmillControl(QMainWindow):
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
+        v = triad_openvr.triad_openvr()
 
         while self.MainWhile:
+            acceleration_factor = 200
+            drag_coefficient = 255
+            arr = []
+            for device in v.devices:
+                position_device = v.devices[device].sample(1, 500)
+
+                if position_device:
+                    arr.append(position_device.get_position_z()[0])
+
+            if arr[-1]*255 <= 200 and arr[-1] <= 0:
+                if int(abs(arr[-1]*acceleration_factor)) > 0:
+                    self.arduino.write(bytes(str(int(abs(arr[-1]*drag_coefficient)*1.1))+'.', 'utf-8')) # Изначально cof = 200
+                    self.Display.display(int(abs(arr[-1]*drag_coefficient)*1.1))
+                elif int(abs(arr[-1]*acceleration_factor)) <= 0:
+                    self.arduino.write(bytes(str(int(abs(arr[-1]*acceleration_factor)))+'.', 'utf-8'))# Изначально factor = 200
+                    self.Display.display(int(abs(arr[-1]*acceleration_factor)))
+                # print(arr[-1])
+
+
+            '''
             while self.current_speed != self.speed:
                 if self.current_speed < self.speed:
                     if self.current_speed + self.acceleration <= self.speed:
@@ -127,12 +149,15 @@ class TreadmillControl(QMainWindow):
                         self.current_speed -= 1
 
                 self.Display.display(self.current_speed)  # Вывод скорости на экран
+
                 if self.data_dispatch and self.arduino:
                     x = f"{self.current_speed}."
-                    self.arduino.write(bytes(str(x), 'utf-8'))
+                    #self.arduino.write(bytes(x), 'utf-8'))
+                    self.console_output(self.arduino.readline())
                     # Доделаьть реализовку сокетов
-                time.sleep(0.1)
+                time.sleep(0.1)'''
 
+        self.arduino.write(bytes('0.', 'utf-8'))
         self.ArdWhile = False
         self.SpeedBar.setEnabled(True)
         self.AccelerationBar.setEnabled(True)

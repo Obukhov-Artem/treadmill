@@ -79,6 +79,9 @@ class Pose_sample_buffer():
     def get_position_y(self):
         return (self.y)
 
+    def get_position_z(self):
+        return (self.z)
+
 
 def get_pose(vr_obj):
     return vr_obj.getDeviceToAbsoluteTrackingPose(openvr.TrackingUniverseStanding, 0, openvr.k_unMaxTrackedDeviceCount)
@@ -92,14 +95,15 @@ class vr_tracked_device():
 
     @lru_cache(maxsize=None)
     def get_serial(self):
-        return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_SerialNumber_String)#.decode('utf-8')
+        return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_SerialNumber_String)  # .decode('utf-8')
 
     def get_need_serial(self):
         if self.vr.getStringTrackedDeviceProperty != '(LHR-1A2114EA, VIVE Tracker Pro MV)' and self.vr.getStringTrackedDeviceProperty != '(LHR-3A018118, VIVE Tracker Pro MV)':
-            return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_SerialNumber_String)#.decode('utf-8')
+            return self.vr.getStringTrackedDeviceProperty(self.index,
+                                                          openvr.Prop_SerialNumber_String)  # .decode('utf-8')
 
     def get_model(self):
-        return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_ModelNumber_String)#.decode('utf-8')
+        return self.vr.getStringTrackedDeviceProperty(self.index, openvr.Prop_ModelNumber_String)  # .decode('utf-8')
 
     def get_battery_percent(self):
         return self.vr.getFloatTrackedDeviceProperty(self.index, openvr.Prop_DeviceBatteryPercentage_Float)[0]
