@@ -10,7 +10,7 @@ import serial
 import time
 import sys
 import csv
-
+import math
 u = 0
 RATE = 500
 import socket
@@ -402,6 +402,7 @@ class TreadmillControl(QMainWindow):
         return
 
     def calibration(self):
+        self.z_napr = 1
         v = triad_openvr.triad_openvr()
         right_hand = None
         right_knee = None
@@ -409,42 +410,62 @@ class TreadmillControl(QMainWindow):
         left_hand = None
         left_knee = None
         left_leg = None
+        human_pos = None
+        hmd_pos = None
         pos_devices_array = []
         for device in v.devices:
             position_device = v.devices[device].sample(1, 500)
 
             if position_device:
-                pos_devices_array.append((position_device.get_position_x()[0], position_device.get_position_y()[0],
+
+                if v.devices[device].device_class == 'HMD':
+                    hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0], position_device.get_position_z()[0],
+                                          v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
+                else:
+                    pos_devices_array.append((position_device.get_position_x()[0], position_device.get_position_y()[0], position_device.get_position_z()[0],
                                           v.devices[device].get_serial(), v.device_index_map[v.devices[device].index]))
+
 
         p_a = sorted(pos_devices_array, key=lambda x: x[1])
         print(len(p_a), p_a)
+        print(hmd_pos)
+        for p in p_a:
+            if 0.6 < p[1] < 2 :
+                if abs(p[0]-hmd_pos[0])<0.1:
+                        human_pos = (p[3],p[4])
+                        if p[2]>0:
+                            self.z_napr = -1
+                        else:
+                            self.z_napr = 1
+
+        print(self.z_napr, human_pos)
         if len(p_a) > 2:
             if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
                 if p_a[0][0] < p_a[1][0]:
-                    left_leg = (p_a[0][2], p_a[0][3])
-                    right_leg = (p_a[1][2], p_a[1][3])
+                    left_leg = (p_a[0][3], p_a[0][4])
+                    right_leg = (p_a[1][3], p_a[1][4])
                 else:
-                    right_leg = (p_a[0][2], p_a[0][3])
-                    left_leg = (p_a[1][2], p_a[1][3])
+                    right_leg = (p_a[0][3], p_a[0][4])
+                    left_leg = (p_a[1][3], p_a[1][4])
         if len(p_a) > 4:
             if p_a[2][1] >= 0.5 and p_a[3][1] >= 0.5:
                 if p_a[2][0] < p_a[3][0]:
-                    left_leg = (p_a[2][2], p_a[2][3])
-                    right_leg = (p_a[3][2], p_a[3][3])
+                    left_leg = (p_a[2][3], p_a[2][4])
+                    right_leg = (p_a[3][3], p_a[3][4])
                 else:
-                    right_leg = (p_a[2][2], p_a[2][3])
-                    left_leg = (p_a[3][2], p_a[3][3])
+                    right_leg = (p_a[2][3], p_a[2][4])
+                    left_leg = (p_a[3][3], p_a[3][4])
         if len(p_a) > 6:
             if p_a[4][1] >= 1 and p_a[5][1] >= 1:
                 if p_a[4][0] < p_a[4][0]:
-                    left_leg = (p_a[4][2], p_a[4][3])
-                    right_leg = (p_a[5][2], p_a[5][3])
+                    left_leg = (p_a[4][3], p_a[4][4])
+                    right_leg = (p_a[5][3], p_a[5][4])
                 else:
-                    right_leg = (p_a[4][2], p_a[4][3])
-                    left_leg = (p_a[5][2], p_a[5][3])
+                    right_leg = (p_a[4][3], p_a[4][4])
+                    left_leg = (p_a[5][3], p_a[5][4])
 
-        self.slovar_trackers = {"Правое_колено": right_knee,
+        self.slovar_trackers = {"Человек": human_pos,
+                                "Правое_колено": right_knee,
                                 "Левое_колено": left_knee,
                                 "Правая_голень": right_leg,
                                 "Левая_голень": left_leg,
