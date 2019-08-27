@@ -10,9 +10,11 @@ import serial
 import time
 import sys
 import csv
+
 u = 0
 RATE = 500
 import socket
+
 '''ATE = 100
 UDP_PORT = 5005
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -27,6 +29,7 @@ u = data
 
 sock.close()
 '''
+
 
 class TreadmillControl(QMainWindow):
     def __init__(self):
@@ -95,7 +98,6 @@ class TreadmillControl(QMainWindow):
         self.StopRecordButton.clicked.connect(self.stop_recording)
         self.DataRecord.toggled.connect(self.record_switch)
 
-
     def closeEvent(self, event):
         self.stop()
 
@@ -125,15 +127,39 @@ class TreadmillControl(QMainWindow):
                 if position_device:
                     arr.append(position_device.get_position_z()[0])
 
-            if arr[-1]*255 <= 200 and arr[-1] <= 0:
-                if int(abs(arr[-1]*acceleration_factor)) > 0:
-                    self.arduino.write(bytes(str(int(abs(arr[-1]*drag_coefficient)*1.1))+'.', 'utf-8')) # Изначально cof = 200
-                    self.Display.display(int(abs(arr[-1]*drag_coefficient)*1.1))
-                elif int(abs(arr[-1]*acceleration_factor)) <= 0:
-                    self.arduino.write(bytes(str(int(abs(arr[-1]*acceleration_factor)))+'.', 'utf-8'))# Изначально factor = 200
-                    self.Display.display(int(abs(arr[-1]*acceleration_factor)))
-                # print(arr[-1])
+            if -255 <= arr[-1] * 255 <= 255:
+                if arr[-1] <= 0:
+                    print(arr[-1])
+                    if int((arr[-1] * acceleration_factor)) > 0:
+                        self.arduino.write(bytes(str(int((arr[-1] * drag_coefficient) * 1.1)) + '.',
+                                                 'utf-8'))  # Изначально cof = 200
+                        self.Display.display(int((arr[-1] * drag_coefficient) * 1.1))
+                    else:
+                        self.arduino.write(bytes(str(int((arr[-1] * acceleration_factor))) + '.',
+                                                 'utf-8'))  # Изначально factor = 200
+                        self.Display.display(int((arr[-1] * acceleration_factor)))
 
+                        print(int((arr[-1] * acceleration_factor)))
+                else:
+                    print(arr[-1])
+                    if int((arr[-1] * acceleration_factor)) > 0:
+                        self.arduino.write(bytes(str(int((arr[-1] * drag_coefficient) * 1.1)) + '.',
+                                                 'utf-8'))  # Изначально cof = 200
+                        self.Display.display(int((arr[-1] * drag_coefficient) * 1.1))
+                    else:
+                        self.arduino.write(bytes(str(int((arr[-1] * acceleration_factor))) + '.',
+                                                 'utf-8'))  # Изначально factor = 200
+                        self.Display.display(int((arr[-1] * acceleration_factor)))
+
+                        print(int(abs(arr[-1] * acceleration_factor)))
+            else:
+                print(arr[-1])
+                x = str(255) + '.'
+                time.sleep(1)
+                self.arduino.write(bytes(x, 'utf-8'))  # Доработать изменение скорости без ошибок
+                self.arduino.write(bytes(x), 'utf-8')
+
+                # print(arr[-1])
 
             '''
             while self.current_speed != self.speed:
@@ -191,7 +217,7 @@ class TreadmillControl(QMainWindow):
         n = 0
         data = []
         while self.RecordingWhile:
-            if time.time()>self.start+1/25:
+            if time.time() > self.start + 1 / 25:
                 self.start = time.time()
                 data_current = []
 
@@ -208,9 +234,9 @@ class TreadmillControl(QMainWindow):
                         except Exception as e:
                             print(e)
 
-                #if self.current_speed != 0:
+                # if self.current_speed != 0:
                 #    data_current.append(1)
-                #if self.current_speed == 0:
+                # if self.current_speed == 0:
                 #    data_current.append(0)
                 data_current.append(self.current_speed)
                 data_current.append(datetime.now())
