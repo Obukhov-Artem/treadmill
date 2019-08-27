@@ -10,6 +10,7 @@ import serial
 import time
 import sys
 import csv
+import math
 u = 0
 RATE = 500
 import socket
@@ -115,9 +116,10 @@ class TreadmillControl(QMainWindow):
     def get_speed(self,z):
         acceleration_factor = 200
         drag_coefficient = 255
+        k1 = 255/math.e
         if self.z_napr > 0:
             if z * drag_coefficient <= acceleration_factor and z > 0:
-                return z* drag_coefficient * 1.1
+                return min(math.e**z*k1,255)
         else:
 
 
