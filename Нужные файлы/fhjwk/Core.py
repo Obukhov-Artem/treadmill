@@ -118,70 +118,114 @@ class TreadmillControl(QMainWindow):
     def get_r(self,z,z0):
         pass
 
-    def get_speed(self, z, r):
-        acceleration_factor = 200
+    def get_speed(self, z):
         k1 = drag_coefficient / math.e
+        max_speed = 255
         safe_zona = 0.2
+        tr_len = 1
+        if z<0:
+            zn = -1
+        else:
+            zn = 1
+        z = abs(z)
+        if z< safe_zona:
+            return 0
+        elif safe_zona <= z <= tr_len:
+            delta = tr_len - safe_zona
+            if z * drag_coefficient <= max_speed:
+                return  zn*min(max_speed,(z-safe_zona)*max_speed/(delta))
+        else:
+            return zn*max_speed
+
+
+        """
+        acceleration_factor = 255
         if -safe_zona<= z <= safe_zona:
             return 0
-        elif self.z_napr*z * drag_coefficient <= acceleration_factor and self.z_napr*z > 0:
-            return (z - safe_zona * self.z_napr) * acceleration_factor
+        if self.z_napr >0:
+            if abs(z) * drag_coefficient <= acceleration_factor and z < 0:
+                return (z + safe_zona * self.z_napr) * acceleration_factor
            # return min(math.e ** (z-safe_zona*self.z_napr) * k1* 1.1, drag_coefficient)
-        elif -self.z_napr*z  * drag_coefficient <= acceleration_factor and self.z_napr*z < 0:
-            return (z-safe_zona) * acceleration_factor
-              # return min(math.e ** (z - safe_zona * self.z_napr) * k1, drag_coefficient)
-
+            elif abs(z)  * drag_coefficient <= acceleration_factor and z>0:
+                return (z-safe_zona) * acceleration_factor
+            else:
+                return -255
+        else:
+            if abs(z) * drag_coefficient <= acceleration_factor and z > 0:
+                return (z - safe_zona * self.z_napr) * acceleration_factor
+           # return min(math.e ** (z-safe_zona*self.z_napr) * k1* 1.1, drag_coefficient)
+            elif abs(z)  * drag_coefficient <= acceleration_factor and z<0:
+                return (z+ safe_zona) * acceleration_factor
+            else:
+                return 255
+        return 0
+        """
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
         v = triad_openvr.triad_openvr()
         current_serial, device = self.slovar_trackers["Человек"]
         z_last =0
+        flag_error = False
         while self.MainWhile:
 
             position_device = v.devices[device].sample(1, 500)
             if position_device:
                 z = position_device.get_position_z()[0]*self.z_napr
-                r = self.get_r(z,z_last)
-                current_speed = self.get_speed(z,r)
-                print(z, current_serial)
-                if -drag_coefficient <= current_speed <= drag_coefficient:
-                    self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
+                if z == 0.0 and not flag_error:
+                    z = z_last
+                    flag_error = True
+                elif z == 0.0 and flag_error:
+                    self.arduino.write(bytes(str("Disconnect") + '.', 'utf-8'))
+                    print("Stop")
+
                 else:
-                    if z <= -1:
-                        z = -1
-                    elif z >= 1:
-                        z = 1
-                    time.sleep(1)
-                    self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.'), 'utf-8')
-                z_last = z
+                    current_speed = self.get_speed(z)
+                    print(z, current_speed)
+                    if current_speed:
+                        if -drag_coefficient <= current_speed <= drag_coefficient:
+                            self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
+                        else:
+                            if current_speed <= -drag_coefficient:
+                                z = -1
+                            elif current_speed >= drag_coefficient:
+                                z = 1
+                            time.sleep(1)
+                            # self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.'), 'utf-8')
+                            x = str(int(drag_coefficient * z)) + '.'
+
+                            self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.', 'utf-8'))
+                    z_last = z
             self.Display.display(int(current_speed))
+            print(z, current_speed)
+            print(z)
             """
             if -255 <= arr[-1] * 255 <= 255:
                 if arr[-1] <= 0:
                     print(arr[-1])
-                    if int((arr[-1] * acceleration_factor)) > 0:
+                    '''if int((arr[-1] * acceleration_factor)) > 0:
                         self.arduino.write(bytes(str(int((arr[-1] * drag_coefficient) * 1.1)) + '.',
                                                  'utf-8'))  # Изначально cof = 200
-                        self.Display.display(int((arr[-1] * drag_coefficient) * 1.1))
-                    else:
-                        self.arduino.write(bytes(str(int((arr[-1] * acceleration_factor))) + '.',
-                                                 'utf-8'))  # Изначально factor = 200
-                        self.Display.display(int((arr[-1] * acceleration_factor)))
+                        self.Display.display(int((arr[-1] * drag_coefficient) * 1.1))'''
+                    # else:
+                    self.arduino.write(bytes(str(int((arr[-1] * acceleration_factor))) + '.',
+                                             'utf-8'))  # Изначально factor = 200
+                    self.Display.display(int((arr[-1] * acceleration_factor)))
 
-                        print(int((arr[-1] * acceleration_factor)))
+                    print(int((arr[-1] * acceleration_factor)))
                 else:
                     print(arr[-1])
                     if int((arr[-1] * acceleration_factor)) > 0:
                         self.arduino.write(bytes(str(int((arr[-1] * drag_coefficient) * 1.1)) + '.',
                                                  'utf-8'))  # Изначально cof = 200
                         self.Display.display(int((arr[-1] * drag_coefficient) * 1.1))
-                    else:
+                    '''else:
                         self.arduino.write(bytes(str(int((arr[-1] * acceleration_factor))) + '.',
                                                  'utf-8'))  # Изначально factor = 200
                         self.Display.display(int((arr[-1] * acceleration_factor)))
 
-                        print(int(abs(arr[-1] * acceleration_factor)))
+                        print(int(abs(arr[-1] * acceleration_factor)))'''
+
             else:
                 print(z)
                 x = str(255) + '.'
@@ -442,58 +486,61 @@ class TreadmillControl(QMainWindow):
         human_pos = None
         hmd_pos = None
         pos_devices_array = []
-        for device in v.devices:
-            position_device = v.devices[device].sample(1, 500)
+        n = 50
+        while n>0 and human_pos is None:
+            n -= 1
+            for device in v.devices:
+                position_device = v.devices[device].sample(1, 500)
 
-            if position_device:
+                if position_device:
 
-                if v.devices[device].device_class == 'HMD':
-                    hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0],
-                               position_device.get_position_z()[0],
-                               v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
-                else:
-                    pos_devices_array.append((position_device.get_position_x()[0], position_device.get_position_y()[0],
-                                              position_device.get_position_z()[0],
-                                              v.devices[device].get_serial(),
-                                              v.device_index_map[v.devices[device].index]))
-
-        p_a = sorted(pos_devices_array, key=lambda x: x[1])
-        print(len(p_a), p_a)
-        print(hmd_pos)
-        for p in p_a:
-            if 0.6 < p[1] < 2:
-                if abs(p[0] - hmd_pos[0]) < 0.1:
-                    human_pos = (p[3], p[4])
-                    if p[2] > 0:
-                        self.z_napr = -1
+                    if v.devices[device].device_class == 'HMD':
+                        hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                   position_device.get_position_z()[0],
+                                   v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
                     else:
-                        self.z_napr = 1
+                        pos_devices_array.append((position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                                  position_device.get_position_z()[0],
+                                                  v.devices[device].get_serial(),
+                                                  v.device_index_map[v.devices[device].index]))
 
-        print(self.z_napr, human_pos)
-        if len(p_a) > 2:
-            if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
-                if p_a[0][0] < p_a[1][0]:
-                    left_leg = (p_a[0][3], p_a[0][4])
-                    right_leg = (p_a[1][3], p_a[1][4])
-                else:
-                    right_leg = (p_a[0][3], p_a[0][4])
-                    left_leg = (p_a[1][3], p_a[1][4])
-        if len(p_a) > 4:
-            if p_a[2][1] >= 0.5 and p_a[3][1] >= 0.5:
-                if p_a[2][0] < p_a[3][0]:
-                    left_leg = (p_a[2][3], p_a[2][4])
-                    right_leg = (p_a[3][3], p_a[3][4])
-                else:
-                    right_leg = (p_a[2][3], p_a[2][4])
-                    left_leg = (p_a[3][3], p_a[3][4])
-        if len(p_a) > 6:
-            if p_a[4][1] >= 1 and p_a[5][1] >= 1:
-                if p_a[4][0] < p_a[4][0]:
-                    left_leg = (p_a[4][3], p_a[4][4])
-                    right_leg = (p_a[5][3], p_a[5][4])
-                else:
-                    right_leg = (p_a[4][3], p_a[4][4])
-                    left_leg = (p_a[5][3], p_a[5][4])
+            p_a = sorted(pos_devices_array, key=lambda x: x[1])
+            print(len(p_a), p_a)
+            print(hmd_pos)
+            for p in p_a:
+                if 0.6 < p[1] < 2:
+                    if abs(p[0] - hmd_pos[0]) < 0.1:
+                        human_pos = (p[3], p[4])
+                        if p[2] > 0:
+                            self.z_napr = 1
+                        else:
+                            self.z_napr = -1
+
+            print(self.z_napr, human_pos)
+            if len(p_a) > 2:
+                if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
+                    if p_a[0][0] < p_a[1][0]:
+                        left_leg = (p_a[0][3], p_a[0][4])
+                        right_leg = (p_a[1][3], p_a[1][4])
+                    else:
+                        right_leg = (p_a[0][3], p_a[0][4])
+                        left_leg = (p_a[1][3], p_a[1][4])
+            if len(p_a) > 4:
+                if p_a[2][1] >= 0.5 and p_a[3][1] >= 0.5:
+                    if p_a[2][0] < p_a[3][0]:
+                        left_leg = (p_a[2][3], p_a[2][4])
+                        right_leg = (p_a[3][3], p_a[3][4])
+                    else:
+                        right_leg = (p_a[2][3], p_a[2][4])
+                        left_leg = (p_a[3][3], p_a[3][4])
+            if len(p_a) > 6:
+                if p_a[4][1] >= 1 and p_a[5][1] >= 1:
+                    if p_a[4][0] < p_a[4][0]:
+                        left_leg = (p_a[4][3], p_a[4][4])
+                        right_leg = (p_a[5][3], p_a[5][4])
+                    else:
+                        right_leg = (p_a[4][3], p_a[4][4])
+                        left_leg = (p_a[5][3], p_a[5][4])
 
         self.slovar_trackers = {"Человек": human_pos,
                                 "Правое_колено": right_knee,
