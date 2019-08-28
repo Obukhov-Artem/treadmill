@@ -124,11 +124,12 @@ class TreadmillControl(QMainWindow):
         safe_zona = 0.2
         if -safe_zona<= z <= safe_zona:
             return 0
-        elif z * drag_coefficient <= acceleration_factor and z > 0:
-            return min(math.e ** (z-safe_zona*self.z_napr) * k1* 1.1, drag_coefficient)
-        elif z <= 0:
-               # return (z-safe_zona*self.z_napr) * acceleration_factor
-               return min(math.e ** (z - safe_zona * self.z_napr) * k1, drag_coefficient)
+        elif self.z_napr*z * drag_coefficient <= acceleration_factor and self.z_napr*z > 0:
+            return (z - safe_zona * self.z_napr) * acceleration_factor
+           # return min(math.e ** (z-safe_zona*self.z_napr) * k1* 1.1, drag_coefficient)
+        elif -self.z_napr*z  * drag_coefficient <= acceleration_factor and self.z_napr*z < 0:
+            return (z-safe_zona) * acceleration_factor
+              # return min(math.e ** (z - safe_zona * self.z_napr) * k1, drag_coefficient)
 
 
     def main_while(self):
@@ -143,6 +144,7 @@ class TreadmillControl(QMainWindow):
                 z = position_device.get_position_z()[0]*self.z_napr
                 r = self.get_r(z,z_last)
                 current_speed = self.get_speed(z,r)
+                print(z, current_serial)
                 if -drag_coefficient <= current_speed <= drag_coefficient:
                     self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
                 else:
@@ -463,9 +465,9 @@ class TreadmillControl(QMainWindow):
                 if abs(p[0] - hmd_pos[0]) < 0.1:
                     human_pos = (p[3], p[4])
                     if p[2] > 0:
-                        self.z_napr = 1
-                    else:
                         self.z_napr = -1
+                    else:
+                        self.z_napr = 1
 
         print(self.z_napr, human_pos)
         if len(p_a) > 2:
