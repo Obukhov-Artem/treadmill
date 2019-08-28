@@ -11,8 +11,10 @@ import time
 import sys
 import csv
 import math
+
 u = 0
 RATE = 500
+drag_coefficient = 255
 import socket
 
 '''ATE = 100
@@ -113,20 +115,46 @@ class TreadmillControl(QMainWindow):
         self.ardControl.setEnabled(False)
         self.StopButton.setEnabled(True)
 
+    def get_r(self,z,z0):
+        pass
+
+    def get_speed(self, z, r):
+        acceleration_factor = 200
+        k1 = drag_coefficient / math.e
+        safe_zona = 0.2
+        if -safe_zona<= z <= safe_zona:
+            return 0
+        elif z * drag_coefficient <= acceleration_factor and z > 0:
+            return min(math.e ** (z-safe_zona*self.z_napr) * k1* 1.1, drag_coefficient)
+        elif z <= 0:
+               # return (z-safe_zona*self.z_napr) * acceleration_factor
+               return min(math.e ** (z - safe_zona * self.z_napr) * k1, drag_coefficient)
+
+
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
         v = triad_openvr.triad_openvr()
-
+        current_serial, device = self.slovar_trackers["Человек"]
+        z_last =0
         while self.MainWhile:
-            acceleration_factor = 200
-            drag_coefficient = 255
-            arr = []
-            for device in v.devices:
-                position_device = v.devices[device].sample(1, 500)
 
-                if position_device:
-                    arr.append(position_device.get_position_z()[0])
-
+            position_device = v.devices[device].sample(1, 500)
+            if position_device:
+                z = position_device.get_position_z()[0]*self.z_napr
+                r = self.get_r(z,z_last)
+                current_speed = self.get_speed(z,r)
+                if -drag_coefficient <= current_speed <= drag_coefficient:
+                    self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
+                else:
+                    if z <= -1:
+                        z = -1
+                    elif z >= 1:
+                        z = 1
+                    time.sleep(1)
+                    self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.'), 'utf-8')
+                z_last = z
+            self.Display.display(int(current_speed))
+            """
             if -255 <= arr[-1] * 255 <= 255:
                 if arr[-1] <= 0:
                     print(arr[-1])
@@ -153,14 +181,13 @@ class TreadmillControl(QMainWindow):
 
                         print(int(abs(arr[-1] * acceleration_factor)))
             else:
-                print(arr[-1])
+                print(z)
                 x = str(255) + '.'
-                time.sleep(1)
-                self.arduino.write(bytes(x, 'utf-8'))  # Доработать изменение скорости без ошибок
+                time.sleep(1) 
                 self.arduino.write(bytes(x), 'utf-8')
 
                 # print(arr[-1])
-
+            """
             '''
             while self.current_speed != self.speed:
                 if self.current_speed < self.speed:
@@ -419,24 +446,26 @@ class TreadmillControl(QMainWindow):
             if position_device:
 
                 if v.devices[device].device_class == 'HMD':
-                    hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0], position_device.get_position_z()[0],
-                                          v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
+                    hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0],
+                               position_device.get_position_z()[0],
+                               v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
                 else:
-                    pos_devices_array.append((position_device.get_position_x()[0], position_device.get_position_y()[0], position_device.get_position_z()[0],
-                                          v.devices[device].get_serial(), v.device_index_map[v.devices[device].index]))
-
+                    pos_devices_array.append((position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                              position_device.get_position_z()[0],
+                                              v.devices[device].get_serial(),
+                                              v.device_index_map[v.devices[device].index]))
 
         p_a = sorted(pos_devices_array, key=lambda x: x[1])
         print(len(p_a), p_a)
         print(hmd_pos)
         for p in p_a:
-            if 0.6 < p[1] < 2 :
-                if abs(p[0]-hmd_pos[0])<0.1:
-                        human_pos = (p[3],p[4])
-                        if p[2]>0:
-                            self.z_napr = -1
-                        else:
-                            self.z_napr = 1
+            if 0.6 < p[1] < 2:
+                if abs(p[0] - hmd_pos[0]) < 0.1:
+                    human_pos = (p[3], p[4])
+                    if p[2] > 0:
+                        self.z_napr = 1
+                    else:
+                        self.z_napr = -1
 
         print(self.z_napr, human_pos)
         if len(p_a) > 2:
