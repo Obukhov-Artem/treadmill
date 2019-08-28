@@ -705,7 +705,7 @@
       <bool>true</bool>
      </property>
      <property name="digitCount">
-      <number>3</number>
+      <number>5</number>
      </property>
      <property name="mode">
       <enum>QLCDNumber::Dec</enum>

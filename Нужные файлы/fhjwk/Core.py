@@ -115,13 +115,20 @@ class TreadmillControl(QMainWindow):
         self.ardControl.setEnabled(False)
         self.StopButton.setEnabled(True)
 
-    def get_r(self,z,z0):
-        pass
+    def get_r(self,data):
+        current = data[-1]
+        last = data[0]
+        avg = sum(data)/len(data)
+        delta = 0.1
+        if abs(current)> abs(avg)+ delta:
+            return -1
+        else:
+            return 1
 
-    def get_speed(self, z):
+    def get_speed(self, z,r):
         k1 = drag_coefficient / math.e
         max_speed = 255
-        safe_zona = 0.2
+        safe_zona = 0.15
         tr_len = 1
         if z<0:
             zn = -1
@@ -133,45 +140,28 @@ class TreadmillControl(QMainWindow):
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
-                return  zn*min(max_speed,(z-safe_zona)*max_speed/(delta))
+                if r>0:
+                    speed = (z-safe_zona)*max_speed/(delta)
+                else:
+                    speed = (z)*max_speed/(delta)
+                return  zn*min(max_speed, speed)
         else:
             return zn*max_speed
 
-
-        """
-        acceleration_factor = 255
-        if -safe_zona<= z <= safe_zona:
-            return 0
-        if self.z_napr >0:
-            if abs(z) * drag_coefficient <= acceleration_factor and z < 0:
-                return (z + safe_zona * self.z_napr) * acceleration_factor
-           # return min(math.e ** (z-safe_zona*self.z_napr) * k1* 1.1, drag_coefficient)
-            elif abs(z)  * drag_coefficient <= acceleration_factor and z>0:
-                return (z-safe_zona) * acceleration_factor
-            else:
-                return -255
-        else:
-            if abs(z) * drag_coefficient <= acceleration_factor and z > 0:
-                return (z - safe_zona * self.z_napr) * acceleration_factor
-           # return min(math.e ** (z-safe_zona*self.z_napr) * k1* 1.1, drag_coefficient)
-            elif abs(z)  * drag_coefficient <= acceleration_factor and z<0:
-                return (z+ safe_zona) * acceleration_factor
-            else:
-                return 255
-        return 0
-        """
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
         v = triad_openvr.triad_openvr()
         current_serial, device = self.slovar_trackers["Человек"]
         z_last =0
+        data = []
         flag_error = False
         while self.MainWhile:
 
             position_device = v.devices[device].sample(1, 500)
             if position_device:
                 z = position_device.get_position_z()[0]*self.z_napr
+                z = z-self.human_0[2]
                 if z == 0.0 and not flag_error:
                     z = z_last
                     flag_error = True
@@ -180,8 +170,14 @@ class TreadmillControl(QMainWindow):
                     print("Stop")
 
                 else:
-                    current_speed = self.get_speed(z)
-                    print(z, current_speed)
+                    if len(data)<200:
+                        data.append(z)
+                    else:
+                        data = data [1:]
+                        data.append(z)
+                    r = self.get_r(data)
+                    current_speed = self.get_speed(z,r)
+                    #print(z, current_speed)
                     if current_speed:
                         if -drag_coefficient <= current_speed <= drag_coefficient:
                             self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
@@ -197,8 +193,8 @@ class TreadmillControl(QMainWindow):
                             self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.', 'utf-8'))
                     z_last = z
             self.Display.display(int(current_speed))
-            print(z, current_speed)
-            print(z)
+            print(z, current_speed, r)
+            #print(z)
             """
             if -255 <= arr[-1] * 255 <= 255:
                 if arr[-1] <= 0:
@@ -485,8 +481,9 @@ class TreadmillControl(QMainWindow):
         left_leg = None
         human_pos = None
         hmd_pos = None
+        self.human_0 = None
         pos_devices_array = []
-        n = 50
+        n = 1
         while n>0 and human_pos is None:
             n -= 1
             for device in v.devices:
@@ -503,13 +500,23 @@ class TreadmillControl(QMainWindow):
                                                   position_device.get_position_z()[0],
                                                   v.devices[device].get_serial(),
                                                   v.device_index_map[v.devices[device].index]))
+                        print(v.devices[device].get_serial() )
+                        if v.devices[device].get_serial() == b'LHR-9D5EB008':
+                            print("OK")
+                            self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                                  position_device.get_position_z()[0]]
+                            human_pos = (v.devices[device].get_serial(),
+                                                  v.device_index_map[v.devices[device].index])
+
 
             p_a = sorted(pos_devices_array, key=lambda x: x[1])
             print(len(p_a), p_a)
             print(hmd_pos)
+            self.z_napr = 1
+            """
             for p in p_a:
                 if 0.6 < p[1] < 2:
-                    if abs(p[0] - hmd_pos[0]) < 0.1:
+                    if abs(p[0] - hmd_pos[0]) < 0.3:
                         human_pos = (p[3], p[4])
                         if p[2] > 0:
                             self.z_napr = 1
@@ -517,6 +524,7 @@ class TreadmillControl(QMainWindow):
                             self.z_napr = -1
 
             print(self.z_napr, human_pos)
+            """
             if len(p_a) > 2:
                 if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
                     if p_a[0][0] < p_a[1][0]:
