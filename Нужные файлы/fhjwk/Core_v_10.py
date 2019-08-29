@@ -126,12 +126,16 @@ class TreadmillControl(QMainWindow):
         else:
             zn = 1
         z = abs(z)
+        """
         if z< safe_zona and not flag_death:
             return 0
         elif z<safe_zona and flag_death:
             delta = tr_len - safe_zona
             speed = (z-safe_zona)*max_speed/(delta)
             return  zn*min(max_speed, speed)
+        """
+        if z< safe_zona:
+            return 0
 
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
@@ -153,6 +157,7 @@ class TreadmillControl(QMainWindow):
         data = []
         r =1
         flag_error = False
+        flag_stop = False
         while self.MainWhile:
 
             position_device = v.devices[device].sample(1, 500)
@@ -163,8 +168,10 @@ class TreadmillControl(QMainWindow):
                     z = z_last
                     flag_error = True
                 elif z == 0.0 and flag_error:
-                    self.arduino.write(bytes(str("Disconnect") + '.', 'utf-8'))
+                    if not flag_stop:
+                        self.arduino.write(bytes(str("d") + '.', 'utf-8'))
                     print("Stop")
+                    flag_stop = True
 
                 else:
 
@@ -196,6 +203,8 @@ class TreadmillControl(QMainWindow):
                     z_last = z
             self.Display.display(int(current_speed))
             print(z, current_speed, r)
+            print(self.arduino.readline())
+
             #print(z)
             """
             if -255 <= arr[-1] * 255 <= 255:
@@ -503,7 +512,7 @@ class TreadmillControl(QMainWindow):
                                                   v.devices[device].get_serial(),
                                                   v.device_index_map[v.devices[device].index]))
                         print(v.devices[device].get_serial() )
-                        if v.devices[device].get_serial() == b'LHR-9D5EB008':
+                        if v.devices[device].get_serial() == b'LHR-1761CD18':
                             print("OK")
                             self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
                                                   position_device.get_position_z()[0]]

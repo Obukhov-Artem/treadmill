@@ -11,6 +11,7 @@ import time
 import sys
 import csv
 import math
+import socket
 
 u = 0
 RATE = 500
@@ -34,9 +35,10 @@ class TreadmillControl(QMainWindow):
 
         #socket Unity
         self.conn = socket.socket()
-        ip = "127.0.0.1"
-        port = 10000
-        self.conn.connect((ip, port))
+        ip = "192.168.0.115"
+        UDP_PORT = 3021
+        self.conn = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        self.conn.connect((ip , UDP_PORT))
         # Предустановка Arduino
         try:
             x = self.Search()
@@ -131,13 +133,8 @@ class TreadmillControl(QMainWindow):
         else:
             zn = 1
         z = abs(z)
-        if z< safe_zona and not flag_death:
-            return 0
-        elif z<safe_zona and flag_death:
-            delta = tr_len - safe_zona
-            speed = (z-safe_zona)*max_speed/(delta)
-            return  zn*min(max_speed, speed)
-
+        if z< safe_zona:
+                    return 0
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
@@ -149,130 +146,91 @@ class TreadmillControl(QMainWindow):
         else:
             return zn*max_speed
 
+    def ExtremeStop(self):
+        if self.current_speed>0:
+            while self.current_speed>0:
+                self.current_speed -= 1
+                self.arduino.write(bytes(str(int(max(self.current_speed,0))) + '.', 'utf-8'))
+                print(max(self.current_speed,0))
+                time.sleep(0.02)
+        else:
+
+            while self.current_speed<0:
+                self.current_speed += 1
+                self.arduino.write(bytes(str(int(min(self.current_speed,0))) + '.', 'utf-8'))
+                print(min(self.current_speed,0))
+                time.sleep(0.02)
+
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
-        v = triad_openvr.triad_openvr()
-        current_serial, device = self.slovar_trackers["Человек"]
-        z_last =0
-        data = []
-        r =1
-        flag_error = False
-        while self.MainWhile:
-
-            position_device = v.devices[device].sample(1, 500)
-            if position_device:
-                z = position_device.get_position_z()[0]*self.z_napr
-                print("*"*4,z, self.human_0[2])
-                if z == 0.0 and not flag_error:
-                    z = z_last
-                    flag_error = True
-                elif z == 0.0 and flag_error:
-                    self.arduino.write(bytes(str("Disconnect") + '.', 'utf-8'))
-                    print("Stop")
-
-                else:
-
-
-                    current_speed = self.get_speed(z,r)
-                    if len(data)<40:
-                        data.append(current_speed)
+        current_speed = 0
+        try:
+            v = triad_openvr.triad_openvr()
+            current_serial, device = self.slovar_trackers["Человек"]
+            z_last =0
+            data = []
+            r =1
+            flag_error = False
+            while self.MainWhile:
+                position_device = v.devices[device].sample(1, 500)
+                if position_device:
+                    z = position_device.get_position_z()[0]*self.z_napr
+                    if z == 0.0 and not flag_error:
+                        z = z_last
+                        flag_error = True
+                    elif z == 0.0 and flag_error:
+                        self.arduino.write(bytes(str("d") + '.', 'utf-8'))
+                        print("Stop")
                     else:
-                        r = self.get_r(data)
-                        data = data [1:]
-                        data.append(current_speed)
-
-                    z = z-self.human_0[2]
-                    r = self.get_r(data)
-                    #print(z, current_speed)
-                    if current_speed:
-                        if -drag_coefficient <= current_speed <= drag_coefficient:
-                            self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
-                            self.conn.send(bytes(['U', current_speed]))
-                            print(len(bytes(['U', current_speed])))
+                        current_speed = self.get_speed(z,r)
+                        self.current_speed = current_speed
+                        if len(data)<40:
+                            data.append(current_speed)
                         else:
-                            if current_speed <= -drag_coefficient:
-                                z = -1
-                            elif current_speed >= drag_coefficient:
-                                z = 1
-                            time.sleep(1)
-                            # self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.'), 'utf-8')
-                            x = str(int(drag_coefficient * z)) + '.'
+                            r = self.get_r(data)
+                            data = data [1:]
+                            data.append(current_speed)
 
-                            self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.', 'utf-8'))
-                            self.conn.send(bytes(['U',drag_coefficient * z]))
-                            print(len(bytes(['U', drag_coefficient * z])))
-                    z_last = z
-            self.Display.display(int(current_speed))
-            print(z, current_speed, r)
-            #print(z)
-            """
-            if -255 <= arr[-1] * 255 <= 255:
-                if arr[-1] <= 0:
-                    print(arr[-1])
-                    '''if int((arr[-1] * acceleration_factor)) > 0:
-                        self.arduino.write(bytes(str(int((arr[-1] * drag_coefficient) * 1.1)) + '.',
-                                                 'utf-8'))  # Изначально cof = 200
-                        self.Display.display(int((arr[-1] * drag_coefficient) * 1.1))'''
-                    # else:
-                    self.arduino.write(bytes(str(int((arr[-1] * acceleration_factor))) + '.',
-                                             'utf-8'))  # Изначально factor = 200
-                    self.Display.display(int((arr[-1] * acceleration_factor)))
+                        z = z-self.human_0[2]
+                        r = self.get_r(data)
+                        if current_speed:
+                            if -drag_coefficient <= current_speed <= drag_coefficient:
+                                self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
+                                s = bytes(str(int(current_speed)), 'utf-8')
+                                print(s)
+                                self.conn.send(s)
+                            else:
+                                if current_speed <= -drag_coefficient:
+                                    z = -1
+                                elif current_speed >= drag_coefficient:
+                                    z = 1
+                                time.sleep(1)
+                                x = str(int(drag_coefficient * z)) + '.'
+                                self.current_speed = int(drag_coefficient * z)
+                                s = bytes(str(int(drag_coefficient * z)), 'utf-8')
+                                self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.', 'utf-8'))
+                                self.conn.send(s)
+                        z_last = z
+                self.Display.display(int(current_speed))
+                #print(z, current_speed, r)
 
-                    print(int((arr[-1] * acceleration_factor)))
-                else:
-                    print(arr[-1])
-                    if int((arr[-1] * acceleration_factor)) > 0:
-                        self.arduino.write(bytes(str(int((arr[-1] * drag_coefficient) * 1.1)) + '.',
-                                                 'utf-8'))  # Изначально cof = 200
-                        self.Display.display(int((arr[-1] * drag_coefficient) * 1.1))
-                    '''else:
-                        self.arduino.write(bytes(str(int((arr[-1] * acceleration_factor))) + '.',
-                                                 'utf-8'))  # Изначально factor = 200
-                        self.Display.display(int((arr[-1] * acceleration_factor)))
 
-                        print(int(abs(arr[-1] * acceleration_factor)))'''
-
-            else:
-                print(z)
-                x = str(255) + '.'
-                time.sleep(1) 
-                self.arduino.write(bytes(x), 'utf-8')
-
-                # print(arr[-1])
-            """
-            '''
-            while self.current_speed != self.speed:
-                if self.current_speed < self.speed:
-                    if self.current_speed + self.acceleration <= self.speed:
-                        self.current_speed += self.acceleration
-                    else:
-                        self.current_speed += 1
-                else:
-                    if self.current_speed - self.acceleration >= self.speed:
-                        self.current_speed -= self.acceleration
-                    else:
-                        self.current_speed -= 1
-
-                self.Display.display(self.current_speed)  # Вывод скорости на экран
-
-                if self.data_dispatch and self.arduino:
-                    x = f"{self.current_speed}."
-                    #self.arduino.write(bytes(x), 'utf-8'))
-                    self.console_output(self.arduino.readline())
-                    # Доделаьть реализовку сокетов
-                time.sleep(0.1)'''
-
-        self.arduino.write(bytes('0.', 'utf-8'))
-        self.ArdWhile = False
-        self.SpeedBar.setEnabled(True)
-        self.AccelerationBar.setEnabled(True)
-        self.RightBar.setEnabled(True)
-        self.ardControl.setEnabled(True)
-        self.StartButton.setEnabled(True)
+            self.arduino.write(bytes('0.', 'utf-8'))
+            self.ArdWhile = False
+            self.SpeedBar.setEnabled(True)
+            self.AccelerationBar.setEnabled(True)
+            self.RightBar.setEnabled(True)
+            self.ardControl.setEnabled(True)
+            self.StartButton.setEnabled(True)
+        except Exception as e:
+            print(e,e.__class__)
+            self.MainWhile = False
+            self.ExtremeStop()
         return
 
     def stop(self):
+
         self.SpeedBox.setValue(0)
         self.speed = 0
         self.MainWhile = False
@@ -281,6 +239,7 @@ class TreadmillControl(QMainWindow):
         self.AccelerationBar.setEnabled(False)
         self.AccelerationBox.setValue(3)  # Ускорение при остановки
         self.StopButton.setEnabled(False)
+        self.ExtremeStop()
 
     def start_recording(self):
         self.RecordingWhile = True
@@ -456,6 +415,7 @@ class TreadmillControl(QMainWindow):
         else:
             self.AccelerationLock.setText(_translate("Form", "🔒"))
 
+
     def record_switch(self):
         self.data_record = not self.data_record
 
@@ -512,7 +472,7 @@ class TreadmillControl(QMainWindow):
                                                   v.devices[device].get_serial(),
                                                   v.device_index_map[v.devices[device].index]))
                         print(v.devices[device].get_serial() )
-                        if v.devices[device].get_serial() == b'LHR-9D5EB008':
+                        if v.devices[device].get_serial() == b'LHR-1761CD18':
                             print("OK")
                             self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
                                                   position_device.get_position_z()[0]]
@@ -524,18 +484,6 @@ class TreadmillControl(QMainWindow):
             print(len(p_a), p_a)
             print(hmd_pos)
             self.z_napr = 1
-            """
-            for p in p_a:
-                if 0.6 < p[1] < 2:
-                    if abs(p[0] - hmd_pos[0]) < 0.3:
-                        human_pos = (p[3], p[4])
-                        if p[2] > 0:
-                            self.z_napr = 1
-                        else:
-                            self.z_napr = -1
-
-            print(self.z_napr, human_pos)
-            """
             if len(p_a) > 2:
                 if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
                     if p_a[0][0] < p_a[1][0]:
