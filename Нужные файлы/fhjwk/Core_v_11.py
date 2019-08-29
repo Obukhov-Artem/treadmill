@@ -142,14 +142,18 @@ class TreadmillControl(QMainWindow):
                     speed = (z-safe_zona)*max_speed/(delta)
                 else:
                     speed = (z-safe_zona)*max_speed/(delta)
+                if speed < 30:
+                    speed =0
                 return  zn*min(max_speed, speed)
         else:
             return zn*max_speed
 
     def ExtremeStop(self):
-        if self.current_speed>0:
+        print("*"*10,"Extreme stop", self.current_speed)
+        if self.current_speed>=0:
             while self.current_speed>0:
                 self.current_speed -= 1
+                print("extreme", self.current_speed)
                 self.arduino.write(bytes(str(int(max(self.current_speed,0))) + '.', 'utf-8'))
                 print(max(self.current_speed,0))
                 time.sleep(0.02)
@@ -157,14 +161,20 @@ class TreadmillControl(QMainWindow):
 
             while self.current_speed<0:
                 self.current_speed += 1
+                print("extreme", self.current_speed)
                 self.arduino.write(bytes(str(int(min(self.current_speed,0))) + '.', 'utf-8'))
                 print(min(self.current_speed,0))
                 time.sleep(0.02)
+        self.current_speed = 0
+        self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
+        self.MainWhile = True
+
 
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
-        current_speed = 0
+        self.last_speed =0
+        self.current_speed = 0
         try:
             v = triad_openvr.triad_openvr()
             current_serial, device = self.slovar_trackers["Человек"]
@@ -180,40 +190,43 @@ class TreadmillControl(QMainWindow):
                         z = z_last
                         flag_error = True
                     elif z == 0.0 and flag_error:
-                        self.arduino.write(bytes(str("d") + '.', 'utf-8'))
+                        self.ExtremeStop()
                         print("Stop")
                     else:
-                        current_speed = self.get_speed(z,r)
-                        self.current_speed = current_speed
+                        self.current_speed = self.get_speed(z,r)
                         if len(data)<40:
-                            data.append(current_speed)
+                            data.append(self.current_speed)
                         else:
                             r = self.get_r(data)
                             data = data [1:]
-                            data.append(current_speed)
+                            data.append(self.current_speed)
 
                         z = z-self.human_0[2]
                         r = self.get_r(data)
-                        if current_speed:
-                            if -drag_coefficient <= current_speed <= drag_coefficient:
-                                self.arduino.write(bytes(str(int(current_speed)) + '.', 'utf-8'))
-                                s = bytes(str(int(current_speed)), 'utf-8')
+                        if self.current_speed:
+                            if -drag_coefficient <= self.current_speed <= drag_coefficient:
+                                print("send_norm", self.current_speed)
+                                self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                                s = bytes(str(int(self.current_speed)), 'utf-8')
                                 print(s)
                                 self.conn.send(s)
                             else:
-                                if current_speed <= -drag_coefficient:
+
+                                if self.current_speed <= -drag_coefficient:
                                     z = -1
-                                elif current_speed >= drag_coefficient:
+                                elif self.current_speed >= drag_coefficient:
                                     z = 1
                                 time.sleep(1)
                                 x = str(int(drag_coefficient * z)) + '.'
                                 self.current_speed = int(drag_coefficient * z)
                                 s = bytes(str(int(drag_coefficient * z)), 'utf-8')
+
+                                print("send_far", drag_coefficient * z)
                                 self.arduino.write(bytes(str(int(drag_coefficient * z)) + '.', 'utf-8'))
                                 self.conn.send(s)
                         z_last = z
-                self.Display.display(int(current_speed))
-                #print(z, current_speed, r)
+                self.Display.display(int(self.current_speed))
+                print(z, self.current_speed, r)
 
 
             self.arduino.write(bytes('0.', 'utf-8'))
