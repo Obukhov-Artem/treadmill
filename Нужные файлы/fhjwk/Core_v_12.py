@@ -184,8 +184,9 @@ class TreadmillControl(QMainWindow):
             print("error")
             return 0
 
-    def ExtremeStop(self):
+    def ExtremeStop(self):#problem
         print("*"*10,"Extreme stop", self.current_speed)
+        #self.arduino.write(bytes(str('d') + '.', 'utf-8'))
         if self.current_speed>=0:
             while self.current_speed>0:
                 self.current_speed -= 1
@@ -229,13 +230,18 @@ class TreadmillControl(QMainWindow):
                     else:
                         z = z - self.human_0[2]
                         self.current_speed = self.get_speed(z)
+                        if abs(self.current_speed-self.last_speed)>10:
+                            print("ERROR",abs(self.current_speed-self.last_speed))
+                            self.last_speed = self.current_speed
+                            continue
                         print("send_norm", self.current_speed)
                         self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
                         s = bytes(str(int(self.current_speed)), 'utf-8')
                         self.conn.send(s)
                         z_last = z
+                        self.last_speed = self.current_speed
                 self.Display.display(int(self.current_speed))
-                print(z, self.current_speed)
+                print(z, self.current_speed, time.time())
 
             self.arduino.write(bytes('0.', 'utf-8'))
             self.ArdWhile = False
