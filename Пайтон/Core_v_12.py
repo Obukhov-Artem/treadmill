@@ -188,7 +188,8 @@ class TreadmillControl(QMainWindow):
 
     def ExtremeStop(self):#problem
         print("*"*10,"Extreme stop", self.current_speed)
-        #self.arduino.write(bytes(str('d') + '.', 'utf-8'))
+        self.arduino.write(bytes(str('d') + '.', 'utf-8'))
+        """
         if self.current_speed>=0:
             while self.current_speed>0:
                 self.current_speed -= 1
@@ -204,10 +205,10 @@ class TreadmillControl(QMainWindow):
                 self.arduino.write(bytes(str(int(min(self.current_speed,0))) + '.', 'utf-8'))
                 print(min(self.current_speed,0))
                 time.sleep(0.02)
-        self.current_speed = 0
         self.last_speed = 0
         self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
-        self.MainWhile = True
+                """
+        self.current_speed = 0
 
 
 
@@ -247,7 +248,14 @@ class TreadmillControl(QMainWindow):
                 self.Display.display(int(self.current_speed))
                 print(z, self.current_speed, time.time())
 
-            self.arduino.write(bytes('0.', 'utf-8'))
+
+            data = self.arduino.readline().decode().split()
+            if 'treadmill' in data:
+                self.MainWhile = True
+
+
+
+
             self.ArdWhile = False
             self.SpeedBar.setEnabled(True)
             self.AccelerationBar.setEnabled(True)
