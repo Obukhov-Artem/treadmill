@@ -1,0 +1,6 @@
+tracker_1 (LHR-1A2114EA, VIVE Tracker Pro MV)
+tracker_2 (LHR-3A018118, VIVE Tracker Pro MV)
+
+							Примерный вывод в сипсок и csv:
+		['0.5', '0.5', '0.5', '0.5', '0.5', '0.5', '0.5', '0.5', '0.5', '0.5', '0.5', '0.5', '255']
+		   x1     y1     z1     x2     y2     z2     x3     y3     z3     x4     y4     z4     speed

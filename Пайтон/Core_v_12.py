@@ -3,6 +3,7 @@ from datetime import datetime
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
+#version 12.2
 import triad_openvr
 import threading
 import asyncio
