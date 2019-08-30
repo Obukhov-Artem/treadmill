@@ -132,6 +132,8 @@ class TreadmillControl(QMainWindow):
 
     def closeEvent(self, event):
         self.stop()
+        self.conn.close()
+        print("EXIT")
 
     def start(self):
         self.MainWhile = True
