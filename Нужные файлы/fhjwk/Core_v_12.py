@@ -203,6 +203,7 @@ class TreadmillControl(QMainWindow):
                 print(min(self.current_speed,0))
                 time.sleep(0.02)
         self.current_speed = 0
+        self.last_speed = 0
         self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
         self.MainWhile = True
 
@@ -225,6 +226,7 @@ class TreadmillControl(QMainWindow):
                         z = z_last
                         flag_error = True
                     elif z == 0.0 and flag_error:
+                        self.last_speed = 0
                         self.ExtremeStop()
                         print("Stop")
                     else:
