@@ -15,7 +15,7 @@ import math
 import socket
 
 u = 0
-SERIAL = b'LHR-1761CD18'
+SERIAL = 'LHR-1761CD18'
 ip = "192.168.0.115"
 UDP_PORT = 3021
 drag_coefficient = 255
@@ -120,7 +120,7 @@ class TreadmillControl(QMainWindow):
                              position_device.get_position_z()[0],
                              v.devices[device].get_serial(),
                              v.device_index_map[v.devices[device].index]))
-
+                        print(v.devices[device].get_serial())
                         if v.devices[device].get_serial() == SERIAL:
                             print("OK")
                             self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
@@ -129,6 +129,7 @@ class TreadmillControl(QMainWindow):
                                          v.device_index_map[v.devices[device].index])
 
             p_a = sorted(pos_devices_array, key=lambda x: x[1])
+            print(p_a)
         self.slovar_trackers = {"Человек": human_pos}
 
     def closeEvent(self, event):
@@ -179,7 +180,7 @@ class TreadmillControl(QMainWindow):
             else:
 
                 print("far zona speed")
-                return max_speed
+                return zn*max_speed
         elif z> tr_len:
             print("far zona")
             return zn * max_speed
@@ -190,25 +191,24 @@ class TreadmillControl(QMainWindow):
     def ExtremeStop(self):#problem
         print("*"*10,"Extreme stop", self.current_speed)
         self.arduino.write(bytes(str('d') + '.', 'utf-8'))
-        """
         if self.current_speed>=0:
-            while self.current_speed>0:
+            while self.current_speed>=0:
                 self.current_speed -= 1
                 print("extreme", self.current_speed)
                 self.arduino.write(bytes(str(int(max(self.current_speed,0))) + '.', 'utf-8'))
-                print(max(self.current_speed,0))
-                time.sleep(0.02)
+                print(str(int(max(self.current_speed,0))) + '.')
+                time.sleep(0.05)
         else:
 
-            while self.current_speed<0:
+            while self.current_speed<=0:
                 self.current_speed += 1
                 print("extreme", self.current_speed)
                 self.arduino.write(bytes(str(int(min(self.current_speed,0))) + '.', 'utf-8'))
-                print(min(self.current_speed,0))
-                time.sleep(0.02)
+                print(str(int(min(self.current_speed,0))) + '.')
+                time.sleep(0.05)
         self.last_speed = 0
         self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
-                """
+
         self.current_speed = 0
 
 
@@ -386,7 +386,8 @@ class TreadmillControl(QMainWindow):
                         date = port.readline().decode().split()
 
                         if 'treadmill' in date:
-                            return __COM
+                            self.arduino= port
+                            self.arduino.write("treadmill")
 
         except Exception as e:
             pass
