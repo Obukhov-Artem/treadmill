@@ -24,17 +24,13 @@ x = 0
 data_in_arduino = 0
 print('Loading...')
 
-UDP_PORT = 5005
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.connect(('localhost', UDP_PORT))
-
 
 def Search(__baudrate=115200, timeSleep=5):
     speed_signal = pyqtSignal(bytes)
 
     # Port Database
     __COMlist = []
-    __COM = ['COM' + str(i) for i in range(2, 100)]
+    __COM = ['COM' + str(i) for i in range(4, 100)]
 
     for _COM in __COM:
         try:
@@ -135,7 +131,6 @@ class SerialThread(QThread):
                 x = str(0) + '.'
         self.port.write(bytes(x, 'utf-8'))
         a = x.replace('.', '')
-        sock.send(bytes(str(a), 'utf-8'))
         print(self.port.readline())
 
 

@@ -364,7 +364,7 @@ class TreadmillControl(QMainWindow):
 
     def Search(self, __baudrate=115200):
         __COMlist = []
-        __COM = ['COM' + str(i) for i in range(100)]
+        __COM = ['COM' + str(i) for i in range(4, 100)]
 
         for _COM in __COM:
             try:
@@ -382,6 +382,7 @@ class TreadmillControl(QMainWindow):
         return __COMlist
 
     def CheckSerialPortMessage(self, __baudrate=115200, __timeSleep=5):
+        self.arduino = None
         try:
             for __COM in self.Search():
 
@@ -398,9 +399,10 @@ class TreadmillControl(QMainWindow):
                         if 'treadmill' in date:
                             self.arduino= port
                             self.arduino.write("treadmill")
+            return self.arduino
 
         except Exception as e:
-            pass
+            return self.arduino
 
     def ard_disconnect(self):
         self.arduino = None

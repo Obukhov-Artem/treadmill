@@ -28,7 +28,7 @@ class TreadmillControl(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__()
         uic.loadUi('ui.ui', self)
-        self.setWindowTitle('Treadmill controller')
+        self.setWindowTitle('Treadmill')
         self.current_speed = 0
         self.speed = 0
         self.acceleration = 0
@@ -364,7 +364,7 @@ class TreadmillControl(QMainWindow):
 
     def Search(self, __baudrate=115200):
         __COMlist = []
-        __COM = ['COM' + str(i) for i in range(4, 100)]
+        __COM = ['COM' + str(i) for i in range(100)]
 
         for _COM in __COM:
             try:
@@ -382,7 +382,6 @@ class TreadmillControl(QMainWindow):
         return __COMlist
 
     def CheckSerialPortMessage(self, __baudrate=115200, __timeSleep=5):
-        self.arduino = None
         try:
             for __COM in self.Search():
 
@@ -399,10 +398,9 @@ class TreadmillControl(QMainWindow):
                         if 'treadmill' in date:
                             self.arduino= port
                             self.arduino.write("treadmill")
-            return self.arduino
 
         except Exception as e:
-            return self.arduino
+            pass
 
     def ard_disconnect(self):
         self.arduino = None

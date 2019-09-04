@@ -1,24 +1,60 @@
-import openvr
-import triad_openvr
-v = triad_openvr.triad_openvr()
-for device in v.devices:
-    position_device = v.devices[device].sample(1, 500)
-    if position_device.get_position_x > 0 and position_device.get_position_y > 0.3 and position_device.get_position_y < 1:
-        right_knee = v.devices[device].get_serial()
-    if position_device.get_position_x < 0 and position_device.get_position_y > 0.3 and position_device.get_position_y < 1:
-        left_knee = v.devices[device].get_serial()
-    if position_device.get_position_x > 0 and position_device.get_position_y < 0.3:
-        right_leg = v.devices[device].get_serial()
-    if position_device.get_position_x < 0 and position_device.get_position_y < 0.3:
-        left_leg = v.devices[device].get_serial()
-    if position_device.get_position_x > 0 and position_device.get_position_y > 1:
-        right_hand = v.devices[device].get_serial()
-    if position_device.get_position_x < 0 and position_device.get_position_y > 1:
-        left_hand = v.devices[device].get_serial()
-    slovar_trackers = {"Правое_колено": right_knee,  # tracker_1
-                       "Левое_колено": left_knee,  # tracker_2
-                       "Правая_голень": right_leg,  # tracker_3
-                       "Левая_голень": left_leg,  # tracker_4
-                       "Правая_перчатка": right_hand,  # tracker_5
-                       "Левая_перчатка": left_hand}  # tracker_6
-    print(slovar_trackers)
+import serial
+import time
+
+
+def Search(__baudrate=115200, timeSleep=5):
+
+    # Port Database
+    __COMlist = []
+    __COM = ['COM' + str(i) for i in range(2, 100)]
+
+    for _COM in __COM:
+        try:
+            COMport = (serial.Serial(port=_COM, \
+                                     baudrate=__baudrate, \
+                                     parity=serial.PARITY_NONE, \
+                                     stopbits=serial.STOPBITS_ONE, \
+                                     bytesize=serial.EIGHTBITS, \
+                                     timeout=0))
+
+            if COMport:
+                # COMlist Creation
+                __COMlist.append(_COM)
+            else:
+                pass
+
+        except Exception as e:
+            '''ErrorAttachment = open("SerialErrorAttachment.txt", "a")
+            ErrorAttachment.write(e.__class__.__name__ + "\r")
+            ErrorAttachment.close()'''
+            continue
+    return __COMlist
+
+
+def CheckSerialPortMessage(__activeCOM=Search(), __baudrate=115200, __timeSleep=5):
+    try:
+        for __COM in __activeCOM:
+
+            port = serial.Serial(__COM, __baudrate)
+            time.sleep(__timeSleep)
+            large = len(port.readline())
+            port.read(large)
+
+            while True:
+
+                if large > 3:
+                    for a in range(__timeSleep):
+
+                        date = port.readline().decode().split()
+
+                        if 'treadmill' in date:
+                            return __COM
+
+                else:
+                    break
+
+    except Exception as e:
+        return e
+
+
+CheckSerialPortMessage()
