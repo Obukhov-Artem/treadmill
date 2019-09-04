@@ -19,6 +19,7 @@ SERIAL = 'LHR-1761CD18'
 ip = "192.168.0.115"
 UDP_PORT = 3021
 drag_coefficient = 255
+max_speed = 255
 import socket
 
 
@@ -160,9 +161,8 @@ class TreadmillControl(QMainWindow):
             return 1
 
     def get_speed(self, z,r=1):
-        max_speed = 255
         safe_zona = 0.2
-        tr_len = 1
+        tr_len = 0.4
         if z<0:
             zn = -1
         else:
@@ -175,8 +175,18 @@ class TreadmillControl(QMainWindow):
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
                 speed = (z-safe_zona)*max_speed/(delta)
+
+
+                delta_speed =  abs(zn*min(max_speed, speed))-abs(self.last_speed)
+                print("*******", delta_speed)
+                if delta_speed <-0.5:
+                    ks = 1.3
+                    print("work zona - TORMOZHENIE")
+                else:
+                    ks = 1
+
                 print("work zona")
-                return  zn*min(max_speed, speed)
+                return  zn*min(max_speed, speed*ks)
             else:
 
                 print("far zona speed")
@@ -193,7 +203,7 @@ class TreadmillControl(QMainWindow):
         self.arduino.write(bytes(str('d') + '.', 'utf-8'))
         if self.current_speed>=0:
             while self.current_speed>=0:
-                self.current_speed -= 1
+                self.current_speed -= 2
                 print("extreme", self.current_speed)
                 self.arduino.write(bytes(str(int(max(self.current_speed,0))) + '.', 'utf-8'))
                 print(str(int(max(self.current_speed,0))) + '.')
@@ -201,7 +211,7 @@ class TreadmillControl(QMainWindow):
         else:
 
             while self.current_speed<=0:
-                self.current_speed += 1
+                self.current_speed += 2
                 print("extreme", self.current_speed)
                 self.arduino.write(bytes(str(int(min(self.current_speed,0))) + '.', 'utf-8'))
                 print(str(int(min(self.current_speed,0))) + '.')
@@ -236,7 +246,7 @@ class TreadmillControl(QMainWindow):
                     else:
                         z = z - self.human_0[2]
                         self.current_speed = self.get_speed(z)
-                        if abs(self.current_speed-self.last_speed)>10:
+                        if abs(self.current_speed-self.last_speed)>30:
                             print("ERROR",abs(self.current_speed-self.last_speed))
                             self.last_speed = self.current_speed
                             continue
