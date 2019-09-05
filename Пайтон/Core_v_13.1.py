@@ -256,7 +256,7 @@ class TreadmillControl(QMainWindow):
                         print("send_norm", self.current_speed)
                         self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
                         s = bytes(str(int(self.current_speed)), 'utf-8')
-                        self.conn.sendto(bytes(str(int(self.current_speed)), 'utf-8'), (UDP_IP, UDP_PORT_Unity))
+                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4," "), 'utf-8'), (UDP_IP, UDP_PORT_Unity))
                         #self.conn.send(s)
                         z_last = z
                         self.last_speed = self.current_speed
