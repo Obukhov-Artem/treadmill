@@ -11,7 +11,7 @@ import triad_openvr
 import threading
 import socket
 
-UDP_PORT = 5005
+UDP_PORT = 3021
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', UDP_PORT))
 

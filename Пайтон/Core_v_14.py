@@ -42,6 +42,7 @@ class TreadmillControl(QMainWindow):
 
         self.conn = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         self.conn.connect((ip , UDP_PORT))
+        print(self.conn)
         # Предустановка Arduino
         try:
             x = self.Search()

@@ -38,10 +38,11 @@ class TreadmillControl(QMainWindow):
         self.RecordingWhile = False
 
         #socket Unity
-        self.conn = socket.socket()
-
-        self.conn = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        self.conn.connect((ip , UDP_PORT))
+        try:
+            self.conn = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+            print(self.conn.connect_ex((ip , UDP_PORT)))
+        except Exception as e:
+            print(e)
         # Предустановка Arduino
         try:
             x = self.Search()
@@ -162,7 +163,7 @@ class TreadmillControl(QMainWindow):
 
     def get_speed(self, z,r=1):
         safe_zona = 0.2
-        tr_len = 0.4
+        tr_len = 0.6
         if z<0:
             zn = -1
         else:
@@ -233,6 +234,13 @@ class TreadmillControl(QMainWindow):
             z_last =0
             flag_error = False
             while self.MainWhile:
+                a = int(-123)
+                print(type(self.current_speed))
+                s = bytes(str(a), 'utf-8')
+                print(s)
+                print(self.conn.send(s))
+
+                time.sleep(0.05)
                 position_device = v.devices[device].sample(1, 500)
                 if position_device:
                     z = position_device.get_position_z()[0]
@@ -253,7 +261,7 @@ class TreadmillControl(QMainWindow):
                         print("send_norm", self.current_speed)
                         self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
                         s = bytes(str(int(self.current_speed)), 'utf-8')
-                        self.conn.send(s)
+                        #self.conn.send(s)
                         z_last = z
                         self.last_speed = self.current_speed
                 self.Display.display(int(self.current_speed))
