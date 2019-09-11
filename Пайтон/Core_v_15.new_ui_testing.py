@@ -30,7 +30,7 @@ class TreadmillControl(QMainWindow):
         self.setWindowTitle('Treadmill')
         self.current_speed = 0
         self.treadmill_length = 70
-        self.speed = 0
+        self.max_speed = 0
 
         self.MainWhile = False
         self.ArdWhile = False
@@ -140,7 +140,7 @@ class TreadmillControl(QMainWindow):
 
     def get_speed(self, z, r=1):
         safe_zona = 0.2
-        tr_len = 0.7
+        tr_len = self.treadmill_length * (10**-2)
         if z < 0:
             zn = -1
         else:
@@ -340,7 +340,7 @@ class TreadmillControl(QMainWindow):
             self.ArdSpeed.display(new)
 
     def change_speed(self):
-        self.speed = self.MaxSpeedSlider.value()
+        self.max_speed = self.MaxSpeedSlider.value()
 
     def change_length(self):
         self.treadmill_length = self.LengthSlider.value()
