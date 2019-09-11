@@ -221,30 +221,34 @@ class TreadmillControl(QMainWindow):
             if -null_zone <= z * zn <= 0:
                 self.move = False
             if zn < 0 and zn * z > 0:
-                # speed = self.current_speed + 1
                 speed  = (z - safe_zona) * max_speed / (delta)
+                print(1)
             elif zn < 0 and zn * z <= 0:
-                #speed = self.current_speed - 1
+                print(2)
                 speed  = (z - safe_zona) * max_speed / (delta)
             elif zn > 0 and zn * z >= 0:
-                #speed = self.current_speed + 1
+                print(3)
                 speed  = (z - safe_zona) * max_speed / (delta)
             elif zn > 0 and zn * z < 0:
-                #speed = self.current_speed - 1
+                print(4)
                 speed  = (z - safe_zona) * max_speed / (delta)
             return zn * min(abs(speed), 255)
         else:
+            print(7)
             if 0 >= z * zn >= safe_zona:
                 self.move = True
             if -safe_zona >= z * zn >= 0:
                 self.move = True
             if zn > 0 and z * zn >= safe_zona:
+                print(5)
                 speed = start_speed * zn
                 self.move = True
             elif zn < 0 and z * zn <= -safe_zona:
                 speed = start_speed * zn
+                print(6)
                 self.move = True
             else:
+                print(8)
                 speed = 0
         return speed
 
