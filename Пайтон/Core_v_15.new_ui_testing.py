@@ -18,7 +18,7 @@ SERIAL = 'LHR-1761CD18'
 drag_coefficient = 255
 max_speed = 255
 
-UDP_IP = "192.168.0.127"
+UDP_IP = "192.168.0.115"
 UDP_PORT_Rec = 3040
 UDP_PORT_Unity = 3021
 
@@ -55,7 +55,7 @@ class TreadmillControl(QMainWindow):
                 pass
 
         # Калибровка датчиков
-        # self.calibration()
+        self.calibration()
 
         # Ui
         self.StartButton.clicked.connect(self.start)
@@ -178,26 +178,33 @@ class TreadmillControl(QMainWindow):
     def ExtremeStop(self):  # problem
         print("*" * 10, "Extreme stop", self.current_speed)
         self.MainWhile = False
-        self.arduino.write(bytes(str('d') + '.', 'utf-8'))
-        if self.current_speed > 0:
-            while self.current_speed > 0:
-                self.current_speed -= 2
-                print("extreme", self.current_speed)
-                self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
-                print(str(int(max(self.current_speed, 0))) + '.')
-                time.sleep(0.05)
+        try:
+            self.arduino.write(bytes(str('d') + '.', 'utf-8'))
+            if self.current_speed > 0:
+                while self.current_speed > 0:
+                    self.current_speed -= 2
+                    print("extreme", self.current_speed)
+                    self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
+                    print(str(int(max(self.current_speed, 0))) + '.')
+                    time.sleep(0.05)
 
-        else:
-            while self.current_speed < 0:
-                self.current_speed += 2
-                print("extreme", self.current_speed)
-                self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
-                print(str(int(min(self.current_speed, 0))) + '.')
-                time.sleep(0.05)
+            else:
+                while self.current_speed < 0:
+                    self.current_speed += 2
+                    print("extreme", self.current_speed)
+                    self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
+                    print(str(int(min(self.current_speed, 0))) + '.')
+                    time.sleep(0.05)
+        except Exception:
+            self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
+
+
 
         self.last_speed = 0
         self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
         self.current_speed = 0
+
+        self.StartButton.setEnabled(True)
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
