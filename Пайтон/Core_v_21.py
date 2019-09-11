@@ -204,6 +204,7 @@ class TreadmillControl(QMainWindow):
     def get_speed_new(self,z):
         safe_zona = 0.3
         start_speed = 10
+        null_zone = safe_zona/3
         step = 1
         tr_len = 0.7
         if z < 0:
@@ -211,25 +212,29 @@ class TreadmillControl(QMainWindow):
         else:
             zn = 1
         z = abs(z)
+
         if self.move:
-            if -1*z*zn<=-safe_zona:
-                self.move = False
-                return 0
-            if z*zn>=0 and zn>0:
-                return self.current_speed+step
-            elif z*zn>=0 and zn<0:
-                return self.current_speed-step
-            elif z*zn<0 and zn>0:
-                return self.current_speed-step
-            elif z*zn<0 and zn<0:
-                return self.current_speed+step
+            if zn<0 and zn*z>0 :
+                speed = self.current_speed+1
+            elif zn<0 and zn*z<=0:
+                speed = self.current_speed-1
+            elif zn>0 and zn*z>=0:
+                speed = self.current_speed+1
+            elif zn>0 and zn*z<0:
+                speed = self.current_speed-1
+
+            return zn*min(abs(speed),255)
         else:
-            if z>=safe_zona:
-                self.move = True
-                speed = start_speed
-                return speed
+            if zn>0 and z*zn>=safe_zona:
+                    self.move = True
+                    speed = start_speed*zn
+            elif zn<0 and z*zn<=-safe_zona:
+                    self.move = True
+                    speed = start_speed*zn
             else:
-                return 0
+                speed = 0
+            return speed
+
 
 
 
@@ -295,7 +300,7 @@ class TreadmillControl(QMainWindow):
                         z_last = z
                         self.last_speed = self.current_speed
                 self.Display.display(int(self.current_speed))
-               # print(z, self.current_speed, time.time())
+                print(z, self.current_speed)
 
 
             data = self.arduino.readline().decode().split()

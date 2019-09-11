@@ -48,7 +48,7 @@
      <rect>
       <x>180</x>
       <y>10</y>
-      <width>281</width>
+      <width>271</width>
       <height>131</height>
      </rect>
     </property>
@@ -141,7 +141,7 @@
      <rect>
       <x>180</x>
       <y>140</y>
-      <width>281</width>
+      <width>271</width>
       <height>131</height>
      </rect>
     </property>
@@ -253,7 +253,7 @@
    <widget class="QGroupBox" name="Console">
     <property name="geometry">
      <rect>
-      <x>470</x>
+      <x>460</x>
       <y>180</y>
       <width>311</width>
       <height>91</height>
@@ -324,7 +324,7 @@ p, li { white-space: pre-wrap; }
    <widget class="QGroupBox" name="ArduinoBar">
     <property name="geometry">
      <rect>
-      <x>470</x>
+      <x>460</x>
       <y>10</y>
       <width>311</width>
       <height>161</height>

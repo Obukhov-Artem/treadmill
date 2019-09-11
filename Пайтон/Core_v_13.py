@@ -20,7 +20,7 @@ SERIAL = 'LHR-1761CD18'
 drag_coefficient = 255
 max_speed = 255
 
-UDP_IP = "192.168.0.127"
+UDP_IP = "192.168.0.115"
 UDP_PORT_Rec = 3040
 UDP_PORT_Unity = 3021
 
