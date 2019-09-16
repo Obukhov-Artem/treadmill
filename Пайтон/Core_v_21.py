@@ -3,7 +3,7 @@ from datetime import datetime
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
-#version 12.2
+# version 12.2
 import triad_openvr
 import threading
 import asyncio
@@ -13,16 +13,18 @@ import sys
 import csv
 import math
 import socket
+
 u = 0
 SERIAL = 'LHR-1761CD18'
-#UDP_PORT = 3021
-#ip = "192.168.0.115"
+# UDP_PORT = 3021
+# ip = "192.168.0.115"
 drag_coefficient = 255
 max_speed = 255
 
 UDP_IP = "192.168.0.127"
 UDP_PORT_Rec = 3040
 UDP_PORT_Unity = 3021
+
 
 class TreadmillControl(QMainWindow):
     def __init__(self):
@@ -33,17 +35,18 @@ class TreadmillControl(QMainWindow):
         self.speed = 0
         self.acceleration = 0
         self.move = False
+        self.save_active = True
 
         self.MainWhile = False
         self.ArdWhile = False
         self.RecordingWhile = False
 
-        #socket Unity
-        #.conn = socket.socket()
+        # socket Unity
+        # .conn = socket.socket()
 
-        self.conn = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        self.conn.bind(('',UDP_PORT_Rec))
-        #print(self.conn.connect_ex((ip , UDP_PORT)))
+        self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.conn.bind(('', UDP_PORT_Rec))
+        # print(self.conn.connect_ex((ip , UDP_PORT)))
         # Предустановка Arduino
         try:
             x = self.Search()
@@ -153,20 +156,20 @@ class TreadmillControl(QMainWindow):
         self.ardControl.setEnabled(False)
         self.StopButton.setEnabled(True)
 
-    def get_r(self,data):
+    def get_r(self, data):
         current = data[-1]
         last = data[0]
-        avg = sum(data)/len(data)
+        avg = sum(data) / len(data)
         delta = 10
-        if abs(current)<abs(avg)- delta:
+        if abs(current) < abs(avg) - delta:
             return -1
         else:
             return 1
 
-    def get_speed(self, z,r=1):
+    def get_speed(self, z, r=1):
         safe_zona = 0.2
         tr_len = 0.7
-        if z<0:
+        if z < 0:
             zn = -1
         else:
             zn = 1
@@ -177,34 +180,33 @@ class TreadmillControl(QMainWindow):
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
-                speed = (z-safe_zona)*max_speed/(delta)
+                speed = (z - safe_zona) * max_speed / (delta)
 
-
-                delta_speed =  abs(zn*min(max_speed, speed))-abs(self.last_speed)
+                delta_speed = abs(zn * min(max_speed, speed)) - abs(self.last_speed)
                 print("*******", delta_speed)
-                if delta_speed <-0.5:
+                if delta_speed < -0.5:
                     ks = 1.3
                     print("work zona - TORMOZHENIE")
                 else:
                     ks = 1
 
                 print("work zona")
-                return  zn*min(max_speed, speed*ks)
+                return zn * min(max_speed, speed * ks)
             else:
 
                 print("far zona speed")
-                return zn*max_speed
-        elif z> tr_len:
+                return zn * max_speed
+        elif z > tr_len:
             print("far zona")
             return zn * max_speed
         else:
             print("error")
             return 0
 
-    def get_speed_new(self,z):
+    def get_speed_new(self, z):
         safe_zona = 0.3
         start_speed = 10
-        null_zone = safe_zona/3
+        null_zone = safe_zona / 3
         step = 1
         tr_len = 0.7
         if z < 0:
@@ -214,64 +216,123 @@ class TreadmillControl(QMainWindow):
         z = abs(z)
 
         if self.move:
-            if zn<0 and zn*z>0 :
-                speed = self.current_speed+1
-            elif zn<0 and zn*z<=0:
-                speed = self.current_speed-1
-            elif zn>0 and zn*z>=0:
-                speed = self.current_speed+1
-            elif zn>0 and zn*z<0:
-                speed = self.current_speed-1
+            if zn < 0 and zn * z > 0:
+                speed = self.current_speed + 1
+            elif zn < 0 and zn * z <= 0:
+                speed = self.current_speed - 1
+            elif zn > 0 and zn * z >= 0:
+                speed = self.current_speed + 1
+            elif zn > 0 and zn * z < 0:
+                speed = self.current_speed - 1
 
-            return zn*min(abs(speed),255)
+            return zn * min(abs(speed), 255)
         else:
-            if zn>0 and z*zn>=safe_zona:
-                    self.move = True
-                    speed = start_speed*zn
-            elif zn<0 and z*zn<=-safe_zona:
-                    self.move = True
-                    speed = start_speed*zn
+            if zn > 0 and z * zn >= safe_zona:
+                self.move = True
+                speed = start_speed * zn
+            elif zn < 0 and z * zn <= -safe_zona:
+                self.move = True
+                speed = start_speed * zn
             else:
                 speed = 0
             return speed
 
+    def get_adaptive_speed(self, z):
+        safe_zona = 0.3
+        start_speed = 10
+        null_zone = safe_zona / 3
+        step = 1
+        delta_time = 0
+        tr_len = 0.7
+        if z < 0:
+            zn = -1
+        else:
+            zn = 1
+        z = abs(z)
+        if self.save_active:
+            if z <= safe_zona and not self.move:
+                return 0
+            if z > safe_zona and not self.move:
+                self.move = True
+                self.time_move = time.time()
+                delta_time = 0
+                delta = tr_len - safe_zona
+                speed = (z - safe_zona) * max_speed / (delta)
+                self.z_work = z
+                return zn * min(max_speed, speed)
+            if z > safe_zona and self.move:
+                if abs(self.z_work - z)<safe_zona:
+                    delta_time = time.time()-self.time_move
+                else:
+                    self.z_work = z
+                    self.time_move = time.time()
+
+                delta = tr_len - safe_zona
+                speed = (z - safe_zona) * max_speed / (delta)
+                if delta_time > 2:
+                    self.const_speed = speed
+                    self.time_move = time.time()
+                    self.save_active = False
+                return zn * min(max_speed, speed)
+        else:
+            if z*zn>=0 and zn<0:
+                self.move = False
+                self.save_active = True
+                self.const_speed = 0
+                return 0
+            if z*zn<=0 and zn>0:
+                self.move = False
+                self.save_active = True
+                self.const_speed = 0
+                return 0
+            else:
+                if z> safe_zona/2:
+                    k = abs((2*z-safe_zona)/(self.z_work*(self.z_work-safe_zona))+1)
+                    print("K"*5,k)
+                    speed = self.const_speed*k
+                    return zn * min(max_speed, speed)
+                else:
+                    return zn * min(max_speed, self.const_speed)
 
 
 
-    def ExtremeStop(self):#problem
-        print("*"*10,"Extreme stop", self.current_speed)
+
+
+
+    def ExtremeStop(self):  # problem
+        print("*" * 10, "Extreme stop", self.current_speed)
         self.arduino.write(bytes(str('d') + '.', 'utf-8'))
-        if self.current_speed>0:
-            while self.current_speed>0:
+        if self.current_speed > 0:
+            while self.current_speed > 0:
                 self.current_speed -= 2
                 print("extreme", self.current_speed)
-                self.arduino.write(bytes(str(int(max(self.current_speed,0))) + '.', 'utf-8'))
-                print(str(int(max(self.current_speed,0))) + '.')
+                self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
+                print(str(int(max(self.current_speed, 0))) + '.')
                 time.sleep(0.05)
         else:
 
-            while self.current_speed<0:
+            while self.current_speed < 0:
                 self.current_speed += 2
                 print("extreme", self.current_speed)
-                self.arduino.write(bytes(str(int(min(self.current_speed,0))) + '.', 'utf-8'))
-                print(str(int(min(self.current_speed,0))) + '.')
+                self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
+                print(str(int(min(self.current_speed, 0))) + '.')
                 time.sleep(0.05)
         self.last_speed = 0
         self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
 
         self.current_speed = 0
 
-
-
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
-        self.last_speed =0
+        self.last_speed = 0
         self.current_speed = 0
+        self.time_move = time.time()
+        self.z_work = 0
         try:
 
             v = triad_openvr.triad_openvr()
             current_serial, device = self.slovar_trackers["Человек"]
-            z_last =0
+            z_last = 0
             flag_error = False
             while self.MainWhile:
 
@@ -287,28 +348,25 @@ class TreadmillControl(QMainWindow):
                         print("Stop")
                     else:
                         z = z - self.human_0[2]
-                        self.current_speed = self.get_speed_new(z)
-                        if abs(self.current_speed-self.last_speed)>30:
-                            print("ERROR",abs(self.current_speed-self.last_speed))
+                        self.current_speed = self.get_adaptive_speed(z)
+                        if abs(self.current_speed - self.last_speed) > 30:
+                            print("ERROR", abs(self.current_speed - self.last_speed))
                             self.last_speed = self.current_speed
                             continue
                         print("send_norm", self.current_speed)
                         self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
                         s = bytes(str(int(self.current_speed)), 'utf-8')
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4," "), 'utf-8'), (UDP_IP, UDP_PORT_Unity))
-                        #self.conn.send(s)
+                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                         (UDP_IP, UDP_PORT_Unity))
+                        # self.conn.send(s)
                         z_last = z
                         self.last_speed = self.current_speed
                 self.Display.display(int(self.current_speed))
                 print(z, self.current_speed)
 
-
             data = self.arduino.readline().decode().split()
             if 'treadmill' in data:
                 self.MainWhile = True
-
-
-
 
             self.ArdWhile = False
             self.SpeedBar.setEnabled(True)
@@ -317,7 +375,7 @@ class TreadmillControl(QMainWindow):
             self.ardControl.setEnabled(True)
             self.StartButton.setEnabled(True)
         except Exception as e:
-            print(e,e.__class__)
+            print(e, e.__class__)
             self.MainWhile = False
             self.ExtremeStop()
         return
@@ -334,9 +392,7 @@ class TreadmillControl(QMainWindow):
         self.StopButton.setEnabled(False)
         self.ExtremeStop()
 
-
-#неважный код для управления
-
+    # неважный код для управления
 
     def start_recording(self):
         self.RecordingWhile = True
@@ -407,7 +463,7 @@ class TreadmillControl(QMainWindow):
 
     def Search(self, __baudrate=115200):
         __COMlist = []
-        __COM = ['COM' + str(i) for i in range(4,100)]
+        __COM = ['COM' + str(i) for i in range(4, 100)]
 
         for _COM in __COM:
             try:
@@ -439,7 +495,7 @@ class TreadmillControl(QMainWindow):
                         date = port.readline().decode().split()
 
                         if 'treadmill' in date:
-                            self.arduino= port
+                            self.arduino = port
                             self.arduino.write("treadmill")
 
         except Exception as e:
@@ -508,7 +564,6 @@ class TreadmillControl(QMainWindow):
             self.AccelerationLock.setText(_translate("Form", "🔓"))
         else:
             self.AccelerationLock.setText(_translate("Form", "🔒"))
-
 
     def record_switch(self):
         self.data_record = not self.data_record
