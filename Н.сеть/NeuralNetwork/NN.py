@@ -18,7 +18,7 @@ print(X_new.shape, X_new[5000],Y[5000])
 X = X_new
 print(Y.shape, Y[0])
 #variant 3
-"""
+
 
 X = data[:, 0:6]
 X = X.reshape((-1, 10, 6))
@@ -65,7 +65,7 @@ model.summary()
 model.fit(X, Y, epochs=20, batch_size=100, validation_split=0.2, shuffle=True)
 score = model.evaluate(X_test, Y_test)
 print(score)
-
+"""
 
 import time
 name_time = str(time.time())[-4:-1]
