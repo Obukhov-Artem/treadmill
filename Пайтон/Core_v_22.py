@@ -239,11 +239,8 @@ class TreadmillControl(QMainWindow):
 
     def get_adaptive_speed(self, z):
         safe_zona = 0.3
-        start_speed = 10
-        null_zone = safe_zona / 3
-        step = 1
         delta_time = 0
-        tr_len = 0.7
+        tr_len = 1
         if z < 0:
             zn = -1
         else:
@@ -251,6 +248,7 @@ class TreadmillControl(QMainWindow):
         z = abs(z)
         if self.save_active:
             if z <= safe_zona and not self.move:
+                print(0, " z <= safe_zona and not self.move")
                 return 0
             if z > safe_zona and not self.move:
                 self.move = True
@@ -259,13 +257,16 @@ class TreadmillControl(QMainWindow):
                 delta = tr_len - safe_zona
                 speed = (z - safe_zona) * max_speed / (delta)
                 self.z_work = z
+                print(zn * min(max_speed, speed), " z > safe_zona and not self.move")
                 return zn * min(max_speed, speed)
             if z > safe_zona and self.move:
                 if abs(self.z_work - z)<safe_zona:
                     delta_time = time.time()-self.time_move
+                    print("abs(self.z_work - z)<safe_zona  ",delta_time)
                 else:
                     self.z_work = z
                     self.time_move = time.time()
+                    print("NOT abs(self.z_work - z)<safe_zona  ", self.z_work, self.time_move)
 
                 delta = tr_len - safe_zona
                 speed = (z - safe_zona) * max_speed / (delta)
@@ -273,25 +274,32 @@ class TreadmillControl(QMainWindow):
                     self.const_speed = speed
                     self.time_move = time.time()
                     self.save_active = False
+                    print("save_active = False, self.const_speed = ", self.const_speed)
+                print(zn * min(max_speed, speed), " z > safe_zona and self.move")
                 return zn * min(max_speed, speed)
         else:
             if z*zn>=0 and zn<0:
                 self.move = False
                 self.save_active = True
                 self.const_speed = 0
+                print("z*zn>=0 and zn<0 self.move = False self.save_active = True")
                 return 0
             if z*zn<=0 and zn>0:
                 self.move = False
                 self.save_active = True
                 self.const_speed = 0
+                print("z*zn<=0 and zn>0 self.move = False self.save_active = True")
                 return 0
             else:
                 if z> safe_zona/2:
                     k = abs((2*z-safe_zona)/(self.z_work*(self.z_work-safe_zona))+1)
                     print("K"*5,k)
                     speed = self.const_speed*k
+                    print(speed, " z> safe_zona/2")
                     return zn * min(max_speed, speed)
                 else:
+
+                    print(zn * min(max_speed, self.const_speed), " z> safe_zona/2")
                     return zn * min(max_speed, self.const_speed)
 
 
