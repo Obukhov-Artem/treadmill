@@ -138,10 +138,10 @@ class TreadmillControl(QMainWindow):
         else:
             return 1
 
-    def get_speed(self, z, r=1):
+    def get_speed(self, z,r=1):
         safe_zona = 0.2
-        tr_len = self.treadmill_length * (10**-2)
-        if z < 0:
+        tr_len = 0.7
+        if z<0:
             zn = -1
         else:
             zn = 1
@@ -152,23 +152,24 @@ class TreadmillControl(QMainWindow):
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
-                speed = (z - safe_zona) * max_speed / (delta)
+                speed = (z-safe_zona)*max_speed/(delta)
 
-                delta_speed = abs(zn * min(max_speed, speed)) - abs(self.last_speed)
+
+                delta_speed =  abs(zn*min(max_speed, speed))-abs(self.last_speed)
                 print("*******", delta_speed)
-                if delta_speed < -0.5:
+                if delta_speed <-0.5:
                     ks = 1.3
                     print("work zona - TORMOZHENIE")
                 else:
                     ks = 1
 
                 print("work zona")
-                return zn * min(max_speed, speed * ks)
+                return  zn*min(max_speed, speed*ks)
             else:
 
                 print("far zona speed")
-                return zn * max_speed
-        elif z > tr_len:
+                return zn*max_speed
+        elif z> tr_len:
             print("far zona")
             return zn * max_speed
         else:

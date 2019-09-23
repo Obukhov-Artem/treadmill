@@ -328,56 +328,56 @@ class TreadmillControl(QMainWindow):
         self.current_speed = 0
         self.time_move = time.time()
         self.z_work = 0
-        try:
+        #try:
 
-            v = triad_openvr.triad_openvr()
-            current_serial, device = self.slovar_trackers["Человек"]
-            z_last = 0
-            flag_error = False
-            while self.MainWhile:
+        v = triad_openvr.triad_openvr()
+        current_serial, device = self.slovar_trackers["Человек"]
+        z_last = 0
+        flag_error = False
+        while self.MainWhile:
 
-                position_device = v.devices[device].sample(1, 500)
-                if position_device:
-                    z = position_device.get_position_z()[0]
-                    if z == 0.0 and not flag_error:
-                        z = z_last
-                        flag_error = True
-                    elif z == 0.0 and flag_error:
-                        self.last_speed = 0
-                        self.ExtremeStop()
-                        print("Stop")
-                    else:
-                        z = z - self.human_0[2]
-                        self.current_speed = self.get_adaptive_speed(z)
-                        if abs(self.current_speed - self.last_speed) > 30:
-                            print("ERROR", abs(self.current_speed - self.last_speed))
-                            self.last_speed = self.current_speed
-                            continue
-                        print("send_norm", self.current_speed)
-                        self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
-                        s = bytes(str(int(self.current_speed)), 'utf-8')
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                         (UDP_IP, UDP_PORT_Unity))
-                        # self.conn.send(s)
-                        z_last = z
+            position_device = v.devices[device].sample(1, 500)
+            if position_device:
+                z = position_device.get_position_z()[0]
+                if z == 0.0 and not flag_error:
+                    z = z_last
+                    flag_error = True
+                elif z == 0.0 and flag_error:
+                    self.last_speed = 0
+                    self.ExtremeStop()
+                    print("Stop")
+                else:
+                    z = z - self.human_0[2]
+                    self.current_speed = self.get_adaptive_speed(z)
+                    if abs(self.current_speed - self.last_speed) > 30:
+                        print("ERROR", abs(self.current_speed - self.last_speed))
                         self.last_speed = self.current_speed
-                self.Display.display(int(self.current_speed))
-                print(z, self.current_speed)
+                        continue
+                    print("send_norm", self.current_speed)
+                    self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                    s = bytes(str(int(self.current_speed)), 'utf-8')
+                    self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                     (UDP_IP, UDP_PORT_Unity))
+                    # self.conn.send(s)
+                    z_last = z
+                    self.last_speed = self.current_speed
+            self.Display.display(int(self.current_speed))
+            print(z, self.current_speed)
 
-            data = self.arduino.readline().decode().split()
-            if 'treadmill' in data:
-                self.MainWhile = True
+        data = self.arduino.readline().decode().split()
+        if 'treadmill' in data:
+            self.MainWhile = True
 
-            self.ArdWhile = False
-            self.SpeedBar.setEnabled(True)
-            self.AccelerationBar.setEnabled(True)
-            self.RightBar.setEnabled(True)
-            self.ardControl.setEnabled(True)
-            self.StartButton.setEnabled(True)
-        except Exception as e:
-            print(e, e.__class__)
-            self.MainWhile = False
-            self.ExtremeStop()
+        self.ArdWhile = False
+        self.SpeedBar.setEnabled(True)
+        self.AccelerationBar.setEnabled(True)
+        self.RightBar.setEnabled(True)
+        self.ardControl.setEnabled(True)
+        self.StartButton.setEnabled(True)
+        #except Exception as e:
+        #    print(e, e.__class__)
+         #   self.MainWhile = False
+        self.ExtremeStop()
         return
 
     def stop(self):
