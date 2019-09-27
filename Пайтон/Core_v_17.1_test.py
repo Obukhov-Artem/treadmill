@@ -14,7 +14,7 @@ import math
 import socket
 
 u = 0
-SERIAL = 'LHR-1761CD18'
+SERIAL = b'LHR-1761CD18'
 drag_coefficient = 255
 max_speed = 255
 
@@ -63,10 +63,12 @@ class TreadmillControl(QMainWindow):
         #   -- Max Speed bar
         self.MaxSpeedSlider.valueChanged.connect(self.speed_changed_slider)
         self.MaxSpeedBox.valueChanged.connect(self.speed_changed_box)
+        self.MaxSpeedSlider.setValue(255)
         self.SpeedLock.clicked.connect(self.speed_lock)
         #   -- Length Bar
         self.LengthSlider.valueChanged.connect(self.length_changed_slider)
         self.LengthBox.valueChanged.connect(self.length_changed_box)
+        self.LengthSlider.setValue(70)
         self.LengthLock.clicked.connect(self.length_lock)
         #   -- Ard control
         self.Connect.clicked.connect(self.ard_connect)
@@ -84,6 +86,7 @@ class TreadmillControl(QMainWindow):
         v = triad_openvr.triad_openvr()
         human_pos = None
         hmd_pos = None
+        right_leg, left_leg = None, None
         self.human_0 = None
         pos_devices_array = []
         n = 1
@@ -99,22 +102,25 @@ class TreadmillControl(QMainWindow):
                                    position_device.get_position_z()[0],
                                    v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
                     else:
-                        pos_devices_array.append(
-                            (position_device.get_position_x()[0], position_device.get_position_y()[0],
-                             position_device.get_position_z()[0],
-                             v.devices[device].get_serial(),
-                             v.device_index_map[v.devices[device].index]))
-                        print(v.devices[device].get_serial())
                         if v.devices[device].get_serial() == SERIAL:
                             print("OK")
                             self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
                                             position_device.get_position_z()[0]]
                             human_pos = (v.devices[device].get_serial(),
                                          v.device_index_map[v.devices[device].index])
+                        else:
+                            pos_devices_array.append(
+                                (position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                 position_device.get_position_z()[0],
+                                 v.devices[device].get_serial(),
+                                 v.device_index_map[v.devices[device].index]))
+                            print(v.devices[device].get_serial())
+
+
 
             p_a = sorted(pos_devices_array, key=lambda x: x[1])
             print(p_a)
-            if len(p_a) > 2:
+            if len(p_a) == 2:
                 if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
                     if p_a[0][0] < p_a[1][0]:
                         left_leg = (p_a[0][3], p_a[0][4])
@@ -216,8 +222,12 @@ class TreadmillControl(QMainWindow):
 
     def get_speed_new(self, z):
         max_speed = self.max_speed
-        tr_len = self.treadmill_length * (10 ** -2)
-        safe_zona = 0.1
+        tr_len_default = self.treadmill_length * (10 ** -2)
+        safe_zona_defalt = 0.3
+        safe_zona = max(0.1, safe_zona_defalt*(max_speed-abs(self.current_speed)/2)/max_speed)
+        tr_len = max(0.3, tr_len_default*(max_speed-abs(self.current_speed)/2)/max_speed)
+        print("safe", safe_zona, "trlen", tr_len)
+
         if z < 0:
             zn = -1
         else:
@@ -230,6 +240,7 @@ class TreadmillControl(QMainWindow):
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
                 speed = (z - safe_zona) * max_speed / (delta)
+
 
                 delta_speed = abs(zn * min(max_speed, speed)) - abs(self.last_speed)
                 print("*******", delta_speed)
@@ -287,7 +298,9 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
         self.current_speed = 0
+        self.record_flag = False
         self.data_coord = []
+        print(self.slovar_trackers)
         try:
             v = triad_openvr.triad_openvr()
             current_serial, device = self.slovar_trackers["Человек"]
@@ -295,7 +308,7 @@ class TreadmillControl(QMainWindow):
             flag_error = False
 
             while self.MainWhile:  # or self.current_speed != 0
-                if time.time() > self.starttime + 1 / 25:
+                if time.time() > self.starttime + 1 / 50:
                     self.starttime = time.time()
                     position_device = v.devices[device].sample(1, 500)
                     if position_device:
@@ -311,8 +324,9 @@ class TreadmillControl(QMainWindow):
 
                         else:
                             z = z - self.human_0[2]
-                            self.current_speed = self.get_speed(z)
-                            self.data_coord.append(self.get_all_position(v))
+                            self.current_speed = self.get_speed_new(z)
+                            if self.record_flag:
+                                self.data_coord.append(self.get_all_position(v))
 
                             if abs(self.current_speed - self.last_speed) > 30:
                                 print("ERROR", abs(self.current_speed - self.last_speed))
@@ -344,11 +358,15 @@ class TreadmillControl(QMainWindow):
         return
 
     def stop(self):
-        name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
-        self.csv_writer(f'{name}.csv', self.fieldnames, self.data_coord)
-        self.data_coord = []
         self.StopButton.setEnabled(False)
         self.ExtremeStop()
+        if self.record_flag:
+            print("WRITING")
+            name = "data" + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+            self.csv_writer(f'{name}.csv', self.fieldnames, self.data_coord)
+            self.data_coord = []
+            print("WRITING END")
+
 
     def ard_connect(self):
         try:
@@ -481,6 +499,13 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.verticalScrollBar().setValue(self.ConsoleOutput.verticalScrollBar().maximum())
         self.ConsoleOutput.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         return
+
+    def csv_writer(self, path, fieldnames, data):
+        with open(path, "w", newline='') as out_file:
+            writer = csv.writer(out_file, delimiter=';')
+            writer.writerow(fieldnames)
+            for row in data:
+                writer.writerow(row)
 
 
 app = QApplication(sys.argv)
