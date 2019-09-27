@@ -110,7 +110,59 @@ class TreadmillControl(QMainWindow):
 
             p_a = sorted(pos_devices_array, key=lambda x: x[1])
             print(p_a)
-        self.slovar_trackers = {"Человек": human_pos}
+            if len(p_a) > 2:
+                if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
+                    if p_a[0][0] < p_a[1][0]:
+                        left_leg = (p_a[0][3], p_a[0][4])
+                        right_leg = (p_a[1][3], p_a[1][4])
+                    else:
+                        right_leg = (p_a[0][3], p_a[0][4])
+                        left_leg = (p_a[1][3], p_a[1][4])
+
+        self.slovar_trackers = {"Человек": human_pos,
+                                "Правая_голень": right_leg,
+                                "Левая_голень": left_leg
+                                }
+
+    def recording_while(self): # переписать и интегрировать в основном цикл
+
+        v = triad_openvr.triad_openvr()
+        n = 0
+        data = []
+        while self.RecordingWhile:
+            if time.time() > self.start + 1 / 25:
+                self.start = time.time()
+                data_current = []
+
+                for serial in self.slovar_trackers:
+                    if self.slovar_trackers[serial]:
+                        try:
+                            current_serial, device = self.slovar_trackers[serial]
+                            position_device = v.devices[device].sample(1, RATE)
+
+                            if position_device:
+                                c = position_device.get_position()
+                                data_current.extend([c[0][0], c[1][0], c[2][0]])
+
+                        except Exception as e:
+                            print(e)
+
+                data_current.append(self.current_speed)
+                data_current.append(datetime.now())
+                data.append(data_current)
+                n += 1
+                if n >= 100000:
+                    name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+                    self.csv_writer(f'{name}.csv', self.fieldnames, data)
+                    data = []
+                    n = 0
+
+        name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+        self.csv_writer(f'{name}.csv', self.fieldnames, data)
+        self.StartRecordButton.setEnabled(True)
+        self.StopRecordButton.setEnabled(False)
+        return
+
 
     def closeEvent(self, event):
         self.stop()
@@ -211,6 +263,7 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
         self.current_speed = 0
+        self.data_coord
         try:
             v = triad_openvr.triad_openvr()
             current_serial, device = self.slovar_trackers["Человек"]
