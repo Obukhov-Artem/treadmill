@@ -166,6 +166,16 @@ class TreadmillControl(QMainWindow):
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
 
+
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+
         self.StartButton.setEnabled(False)
         self.ArduinoBar.setEnabled(False)
         self.StopButton.setEnabled(True)
@@ -320,7 +330,7 @@ class TreadmillControl(QMainWindow):
         self.current_speed = 0
         self.record_flag = False
         self.data_coord = []
-        print(self.slovar_trackers)
+        #print(self.slovar_trackers)
         try:
             v = triad_openvr.triad_openvr()
             current_serial, device = self.slovar_trackers["Человек"]
@@ -362,9 +372,9 @@ class TreadmillControl(QMainWindow):
                             self.last_speed = self.current_speed
                 self.Display.display(int(self.current_speed))
 
-            data = self.arduino.readline().decode().split()
-            if 'treadmill' in data:
-                self.MainWhile = True
+            #data = self.arduino.readline().decode().split()
+            #if 'Connection' in data:
+             #   self.MainWhile = True
 
             self.MaxSpeedBar.setEnabled(True)
             self.LengthBar.setEnabled(True)

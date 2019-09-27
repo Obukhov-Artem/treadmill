@@ -202,6 +202,7 @@ class TreadmillControl(QMainWindow):
                     self.current_speed -= 2
                     print("extreme", self.current_speed)
                     self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
+                    #self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                     print(str(int(max(self.current_speed, 0))) + '.')
                     time.sleep(0.05)
 
@@ -210,6 +211,7 @@ class TreadmillControl(QMainWindow):
                     self.current_speed += 2
                     print("extreme", self.current_speed)
                     self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
+                    #self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                     print(str(int(min(self.current_speed, 0))) + '.')
                     time.sleep(0.05)
         except Exception:
