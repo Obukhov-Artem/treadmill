@@ -14,7 +14,7 @@ import math
 import socket
 
 u = 0
-SERIAL = 'LHR-1761CD18'
+SERIAL = b'LHR-1761CD18'
 drag_coefficient = 255
 max_speed = 255
 
@@ -123,7 +123,6 @@ class TreadmillControl(QMainWindow):
         main_while_thread.start()
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
-
         self.StartButton.setEnabled(False)
         self.ArduinoBar.setEnabled(False)
         self.StopButton.setEnabled(True)
@@ -138,9 +137,10 @@ class TreadmillControl(QMainWindow):
         else:
             return 1
 
-    def get_speed(self, z,r=1):
+    def get_speed(self, z):
         safe_zona = 0.2
-        tr_len = 0.7
+        max_speed = self.max_speed
+        tr_len = self.treadmill_length * (10**-2)
         if z<0:
             zn = -1
         else:

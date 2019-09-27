@@ -15,7 +15,7 @@ import math
 import socket
 
 u = 0
-SERIAL = 'LHR-1761CD18'
+SERIAL = b'LHR-1761CD18'
 # UDP_PORT = 3021
 # ip = "192.168.0.115"
 drag_coefficient = 255
@@ -240,7 +240,7 @@ class TreadmillControl(QMainWindow):
     def get_adaptive_speed(self, z):
         safe_zona = 0.3
         delta_time = 0
-        tr_len = 1
+        tr_len = 0.6
         if z < 0:
             zn = -1
         else:
@@ -256,35 +256,39 @@ class TreadmillControl(QMainWindow):
                 delta_time = 0
                 delta = tr_len - safe_zona
                 speed = (z - safe_zona) * max_speed / (delta)
-                self.z_work = z
+                self.z_work = zn*z
                 print(zn * min(max_speed, speed), " z > safe_zona and not self.move")
                 return zn * min(max_speed, speed)
             if z > safe_zona and self.move:
-                if abs(self.z_work - z)<safe_zona:
+                if abs(self.z_work - z*zn)<safe_zona:
                     delta_time = time.time()-self.time_move
                     print("abs(self.z_work - z)<safe_zona  ",delta_time)
                 else:
-                    self.z_work = z
+                    self.z_work = zn*z
                     self.time_move = time.time()
                     print("NOT abs(self.z_work - z)<safe_zona  ", self.z_work, self.time_move)
 
                 delta = tr_len - safe_zona
                 speed = (z - safe_zona) * max_speed / (delta)
                 if delta_time > 2:
-                    self.const_speed = speed
+                    self.const_speed = zn*speed
                     self.time_move = time.time()
                     self.save_active = False
                     print("save_active = False, self.const_speed = ", self.const_speed)
                 print(zn * min(max_speed, speed), " z > safe_zona and self.move")
                 return zn * min(max_speed, speed)
         else:
-            if z*zn>=0 and zn<0:
+            if self.const_speed<0:
+                czn =-1
+            else:
+                czn =1
+            if z*zn>=0 and czn<0:
                 self.move = False
                 self.save_active = True
                 self.const_speed = 0
                 print("z*zn>=0 and zn<0 self.move = False self.save_active = True")
                 return 0
-            if z*zn<=0 and zn>0:
+            if z*zn<=0 and czn>0:
                 self.move = False
                 self.save_active = True
                 self.const_speed = 0
@@ -292,15 +296,20 @@ class TreadmillControl(QMainWindow):
                 return 0
             else:
                 if z> safe_zona/2:
-                    k = abs((2*z-safe_zona)/(self.z_work*(self.z_work-safe_zona))+1)
-                    print("K"*5,k)
+                    print(safe_zona,self.z_work,self.const_speed)
+                    #k = abs((2*z-safe_zona)/(self.z_work*(self.z_work-zn*safe_zona))+1)
+                    k = 2
+                    #print("K"*5,k)
                     speed = self.const_speed*k
+
                     print(speed, " z> safe_zona/2")
-                    return zn * min(max_speed, speed)
+                    return zn * min(max_speed, abs(speed))
+
                 else:
 
                     print(zn * min(max_speed, self.const_speed), " z> safe_zona/2")
-                    return zn * min(max_speed, self.const_speed)
+                    return self.const_speed #warning
+        return 0
 
 
 

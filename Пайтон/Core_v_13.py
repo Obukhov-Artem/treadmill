@@ -14,8 +14,10 @@ import csv
 import math
 import socket
 u = 0
-SERIAL = 'LHR-1761CD18'
+#SERIAL = b'LHR-1761CD18'
+SERIAL = b'LHR-FFB5BB42'
 #UDP_PORT = 3021
+#ip = "192.168.0.115"
 #ip = "192.168.0.115"
 drag_coefficient = 255
 max_speed = 255
@@ -146,6 +148,7 @@ class TreadmillControl(QMainWindow):
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
 
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
         self.StartButton.setEnabled(False)
         self.RightBar.setEnabled(False)
         self.ardControl.setEnabled(False)
@@ -163,7 +166,8 @@ class TreadmillControl(QMainWindow):
 
     def get_speed(self, z,r=1):
         safe_zona = 0.2
-        tr_len = 0.7
+        tr_len = 0.6
+
         if z<0:
             zn = -1
         else:
@@ -176,10 +180,11 @@ class TreadmillControl(QMainWindow):
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
                 speed = (z-safe_zona)*max_speed/(delta)
-
+                #speed = max_speed*(((z-safe_zona)/delta)**2)
+                #speed = max(60, speed)
 
                 delta_speed =  abs(zn*min(max_speed, speed))-abs(self.last_speed)
-                print("*******", delta_speed)
+                print("*******", z**2)
                 if delta_speed <-0.5:
                     ks = 1.3
                     print("work zona - TORMOZHENIE")
@@ -201,7 +206,7 @@ class TreadmillControl(QMainWindow):
 
     def ExtremeStop(self):#problem
         print("*"*10,"Extreme stop", self.current_speed)
-        self.arduino.write(bytes(str('d') + '.', 'utf-8'))
+        self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
         if self.current_speed>0:
             while self.current_speed>0:
                 self.current_speed -= 2

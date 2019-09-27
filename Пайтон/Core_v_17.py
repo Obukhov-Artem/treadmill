@@ -14,13 +14,14 @@ import math
 import socket
 
 u = 0
-SERIAL = 'LHR-1761CD18'
+#SERIAL = b'LHR-1761CD18'
+SERIAL = b'LHR-FFB5BB42'
 drag_coefficient = 255
 max_speed = 255
 
-UDP_IP = "192.168.0.115"
+UDP_IP = "192.168.137.143"
 UDP_PORT_Rec = 3040
-UDP_PORT_Unity = 3021
+UDP_PORT_Unity = 3031
 
 
 class TreadmillControl(QMainWindow):
@@ -30,7 +31,7 @@ class TreadmillControl(QMainWindow):
         self.setWindowTitle('Treadmill')
         self.current_speed = 0
         self.treadmill_length = 70
-        self.max_speed = 0
+        self.max_speed = 255
 
         self.MainWhile = False
         self.ArdWhile = False
@@ -63,10 +64,12 @@ class TreadmillControl(QMainWindow):
         #   -- Max Speed bar
         self.MaxSpeedSlider.valueChanged.connect(self.speed_changed_slider)
         self.MaxSpeedBox.valueChanged.connect(self.speed_changed_box)
+        self.MaxSpeedSlider.setValue(255)
         self.SpeedLock.clicked.connect(self.speed_lock)
         #   -- Length Bar
         self.LengthSlider.valueChanged.connect(self.length_changed_slider)
         self.LengthBox.valueChanged.connect(self.length_changed_box)
+        self.LengthSlider.setValue(70)
         self.LengthLock.clicked.connect(self.length_lock)
         #   -- Ard control
         self.Connect.clicked.connect(self.ard_connect)
@@ -124,6 +127,18 @@ class TreadmillControl(QMainWindow):
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
 
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+        time.sleep(0.1)
+
+        print("**************************")
+        print(self.arduino.readline())
+        print("**************************")
         self.StartButton.setEnabled(False)
         self.ArduinoBar.setEnabled(False)
         self.StopButton.setEnabled(True)
@@ -138,9 +153,10 @@ class TreadmillControl(QMainWindow):
         else:
             return 1
 
-    def get_speed(self, z,r=1):
-        safe_zona = 0.2
-        tr_len = 0.7
+    def get_speed(self, z):
+        max_speed = self.max_speed
+        tr_len = self.treadmill_length * (10**-2)
+        safe_zona = 0.1
         if z<0:
             zn = -1
         else:
@@ -180,7 +196,7 @@ class TreadmillControl(QMainWindow):
         print("*" * 10, "Extreme stop", self.current_speed)
         self.MainWhile = False
         try:
-            self.arduino.write(bytes(str('d') + '.', 'utf-8'))
+            self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
             if self.current_speed > 0:
                 while self.current_speed > 0:
                     self.current_speed -= 2
@@ -241,6 +257,7 @@ class TreadmillControl(QMainWindow):
 
                         print("send_norm", self.current_speed)
                         self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                        print("ARDUINO", self.arduino.readline())
                         s = bytes(str(int(self.current_speed)), 'utf-8')
                         self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
                                          (UDP_IP, UDP_PORT_Unity))
