@@ -196,22 +196,24 @@ class TreadmillControl(QMainWindow):
         print("*" * 10, "Extreme stop", self.current_speed)
         self.MainWhile = False
         try:
-            self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+
             if self.current_speed > 0:
+                self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                 while self.current_speed > 0:
                     self.current_speed -= 2
                     print("extreme", self.current_speed)
-                    self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
-                    #self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+                    #self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
+                    self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                     print(str(int(max(self.current_speed, 0))) + '.')
                     time.sleep(0.05)
 
             else:
+                self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                 while self.current_speed < 0:
                     self.current_speed += 2
                     print("extreme", self.current_speed)
-                    self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
-                    #self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+                    #self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
+                    self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                     print(str(int(min(self.current_speed, 0))) + '.')
                     time.sleep(0.05)
         except Exception:
