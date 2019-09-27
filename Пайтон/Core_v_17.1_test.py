@@ -34,7 +34,7 @@ class TreadmillControl(QMainWindow):
 
         self.MainWhile = False
         self.ArdWhile = False
-
+        self.calibration_zone = True
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.conn.bind(('', UDP_PORT_Rec))
 
@@ -221,18 +221,35 @@ class TreadmillControl(QMainWindow):
 
 
     def get_speed_new(self, z):
-        max_speed = self.max_speed
-        tr_len_default = self.treadmill_length * (10 ** -2)
-        safe_zona_defalt = 0.3
-        safe_zona = max(0.1, safe_zona_defalt*(max_speed-abs(self.current_speed)/2)/max_speed)
-        tr_len = max(0.3, tr_len_default*(max_speed-abs(self.current_speed)/2)/max_speed)
-        print("safe", safe_zona, "trlen", tr_len)
-
+        if self.calibration_zone:
+            max_speed = self.max_speed
+            self.tr_len_default = self.treadmill_length * (10 ** -2)
+            self.safe_zona_defalt = 0.3
+            self.pre_sz, self.pre_tr = self.safe_zona_defalt,self.tr_len_default
+            self.calibration_zone = False
+            safe_zona = self.safe_zona_defalt
+            tr_len = self.tr_len_default
         if z < 0:
             zn = -1
         else:
             zn = 1
         z = abs(z)
+        z_correct = z - self.safe_zona_defalt
+        if 0<z_correct < self.safe_zona_defalt:
+            new_safe_zona = max(0.01, self.safe_zona_defalt-z_correct)
+            new_tr_len = max(0.01, self.tr_len_default-z_correct)
+            if new_safe_zona<self.pre_sz:
+                self.pre_sz = new_safe_zona
+                safe_zona = new_safe_zona
+            if new_tr_len<self.pre_tr:
+                self.pre_tr = new_tr_len
+                tr_len = new_tr_len
+        if z< 0.03:
+            self.pre_sz, self.pre_tr = self.safe_zona_defalt, self.tr_len_default
+            self.calibration_zone = False
+            safe_zona = self.safe_zona_defalt
+            tr_len = self.tr_len_default
+        print("TEST", z,safe_zona,tr_len)
         if z < safe_zona:
             print("safe zona")
             return 0
