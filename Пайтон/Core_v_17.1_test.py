@@ -175,7 +175,9 @@ class TreadmillControl(QMainWindow):
         time.sleep(0.1)
         self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
         time.sleep(0.1)
-
+        print("**************************")
+        print(self.arduino.readline())
+        print("**************************")
         self.StartButton.setEnabled(False)
         self.ArduinoBar.setEnabled(False)
         self.StopButton.setEnabled(True)
@@ -375,7 +377,10 @@ class TreadmillControl(QMainWindow):
             #data = self.arduino.readline().decode().split()
             #if 'Connection' in data:
              #   self.MainWhile = True
+            data = self.arduino.readline().decode().split()
 
+            if 'treadmill' in data:
+                self.MainWhile = True
             self.MaxSpeedBar.setEnabled(True)
             self.LengthBar.setEnabled(True)
             self.ArduinoBar.setEnabled(True)
