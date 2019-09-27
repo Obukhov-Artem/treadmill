@@ -74,6 +74,10 @@ class TreadmillControl(QMainWindow):
         #   -- Ard settings
         self.ArdComPortSelect.clicked.connect(self.ard_change_port)
         self.ArdSpeedSelect.clicked.connect(self.ard_change_speed)
+        self.fieldnames = ['x_tracker_1', 'y_tracker_1', 'z_tracker_1',
+                           'x_tracker_2', 'y_tracker_2', 'z_tracker_2',
+                           'x_tracker_3', 'y_tracker_3', 'z_tracker_3',
+                           'data_on_treadmill']
 
     def calibration(self):
         self.z_napr = 1
@@ -124,44 +128,23 @@ class TreadmillControl(QMainWindow):
                                 "Левая_голень": left_leg
                                 }
 
-    def recording_while(self): # переписать и интегрировать в основном цикл
+    def get_all_position(self, openvr):
+        data_current = []
 
-        v = triad_openvr.triad_openvr()
-        n = 0
-        data = []
-        while self.RecordingWhile:
-            if time.time() > self.start + 1 / 25:
-                self.start = time.time()
-                data_current = []
+        for serial in self.slovar_trackers:
+            if self.slovar_trackers[serial]:
+                try:
+                    current_serial, device = self.slovar_trackers[serial]
+                    position_device = openvr.devices[device].sample(1, 500)
 
-                for serial in self.slovar_trackers:
-                    if self.slovar_trackers[serial]:
-                        try:
-                            current_serial, device = self.slovar_trackers[serial]
-                            position_device = v.devices[device].sample(1, RATE)
+                    if position_device:
+                        c = position_device.get_position()
+                        data_current.extend([c[0][0], c[1][0], c[2][0]])
 
-                            if position_device:
-                                c = position_device.get_position()
-                                data_current.extend([c[0][0], c[1][0], c[2][0]])
-
-                        except Exception as e:
-                            print(e)
-
-                data_current.append(self.current_speed)
-                data_current.append(datetime.now())
-                data.append(data_current)
-                n += 1
-                if n >= 100000:
-                    name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
-                    self.csv_writer(f'{name}.csv', self.fieldnames, data)
-                    data = []
-                    n = 0
-
-        name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
-        self.csv_writer(f'{name}.csv', self.fieldnames, data)
-        self.StartRecordButton.setEnabled(True)
-        self.StopRecordButton.setEnabled(False)
-        return
+                except Exception as e:
+                    print(e)
+        data_current.extend([self.current_speed])
+        return data_current
 
 
     def closeEvent(self, event):
@@ -171,6 +154,7 @@ class TreadmillControl(QMainWindow):
 
     def start(self):
         self.MainWhile = True
+        self.starttime = time.time()
         main_while_thread = threading.Thread(target=self.main_while)
         main_while_thread.start()
         if not self.arduino:
@@ -190,10 +174,11 @@ class TreadmillControl(QMainWindow):
         else:
             return 1
 
-    def get_speed(self, z,r=1):
-        safe_zona = 0.2
-        tr_len = 0.7
-        if z<0:
+    def get_speed(self, z):
+        max_speed = self.max_speed
+        tr_len = self.treadmill_length * (10 ** -2)
+        safe_zona = 0.1
+        if z < 0:
             zn = -1
         else:
             zn = 1
@@ -204,24 +189,63 @@ class TreadmillControl(QMainWindow):
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
-                speed = (z-safe_zona)*max_speed/(delta)
+                speed = (z - safe_zona) * max_speed / (delta)
 
-
-                delta_speed =  abs(zn*min(max_speed, speed))-abs(self.last_speed)
+                delta_speed = abs(zn * min(max_speed, speed)) - abs(self.last_speed)
                 print("*******", delta_speed)
-                if delta_speed <-0.5:
+                if delta_speed < -0.5:
                     ks = 1.3
                     print("work zona - TORMOZHENIE")
                 else:
                     ks = 1
 
                 print("work zona")
-                return  zn*min(max_speed, speed*ks)
+                return zn * min(max_speed, speed * ks)
             else:
 
                 print("far zona speed")
-                return zn*max_speed
-        elif z> tr_len:
+                return zn * max_speed
+        elif z > tr_len:
+            print("far zona")
+            return zn * max_speed
+        else:
+            print("error")
+            return 0
+
+
+
+    def get_speed_new(self, z):
+        max_speed = self.max_speed
+        tr_len = self.treadmill_length * (10 ** -2)
+        safe_zona = 0.1
+        if z < 0:
+            zn = -1
+        else:
+            zn = 1
+        z = abs(z)
+        if z < safe_zona:
+            print("safe zona")
+            return 0
+        elif safe_zona <= z <= tr_len:
+            delta = tr_len - safe_zona
+            if z * drag_coefficient <= max_speed:
+                speed = (z - safe_zona) * max_speed / (delta)
+
+                delta_speed = abs(zn * min(max_speed, speed)) - abs(self.last_speed)
+                print("*******", delta_speed)
+                if delta_speed < -0.5:
+                    ks = 1.3
+                    print("work zona - TORMOZHENIE")
+                else:
+                    ks = 1
+
+                print("work zona")
+                return zn * min(max_speed, speed * ks)
+            else:
+
+                print("far zona speed")
+                return zn * max_speed
+        elif z > tr_len:
             print("far zona")
             return zn * max_speed
         else:
@@ -263,7 +287,7 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
         self.current_speed = 0
-        self.data_coord
+        self.data_coord = []
         try:
             v = triad_openvr.triad_openvr()
             current_serial, device = self.slovar_trackers["Человек"]
@@ -271,37 +295,40 @@ class TreadmillControl(QMainWindow):
             flag_error = False
 
             while self.MainWhile:  # or self.current_speed != 0
-                position_device = v.devices[device].sample(1, 500)
-                if position_device:
-                    z = position_device.get_position_z()[0]
-                    if z == 0.0 and not flag_error:
-                        z = z_last
-                        flag_error = True
+                if time.time() > self.starttime + 1 / 25:
+                    self.starttime = time.time()
+                    position_device = v.devices[device].sample(1, 500)
+                    if position_device:
+                        z = position_device.get_position_z()[0]
+                        if z == 0.0 and not flag_error:
+                            z = z_last
+                            flag_error = True
 
-                    elif z == 0.0 and flag_error:
-                        self.last_speed = 0
-                        self.ExtremeStop()
-                        print("Stop")
+                        elif z == 0.0 and flag_error:
+                            self.last_speed = 0
+                            self.ExtremeStop()
+                            print("Stop")
 
-                    else:
-                        z = z - self.human_0[2]
-                        self.current_speed = self.get_speed(z)
+                        else:
+                            z = z - self.human_0[2]
+                            self.current_speed = self.get_speed(z)
+                            self.data_coord.append(self.get_all_position(v))
 
-                        if abs(self.current_speed - self.last_speed) > 30:
-                            print("ERROR", abs(self.current_speed - self.last_speed))
+                            if abs(self.current_speed - self.last_speed) > 30:
+                                print("ERROR", abs(self.current_speed - self.last_speed))
+                                self.last_speed = self.current_speed
+                                continue
+
+                            print("send_norm", self.current_speed)
+                            self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                            s = bytes(str(int(self.current_speed)), 'utf-8')
+                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                             (UDP_IP, UDP_PORT_Unity))
+                            z_last = z
                             self.last_speed = self.current_speed
-                            continue
-
-                        print("send_norm", self.current_speed)
-                        self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
-                        s = bytes(str(int(self.current_speed)), 'utf-8')
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                         (UDP_IP, UDP_PORT_Unity))
-                        z_last = z
-                        self.last_speed = self.current_speed
                 self.Display.display(int(self.current_speed))
-            data = self.arduino.readline().decode().split()
 
+            data = self.arduino.readline().decode().split()
             if 'treadmill' in data:
                 self.MainWhile = True
 
@@ -317,6 +344,9 @@ class TreadmillControl(QMainWindow):
         return
 
     def stop(self):
+        name = self.FileName.text() + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+        self.csv_writer(f'{name}.csv', self.fieldnames, self.data_coord)
+        self.data_coord = []
         self.StopButton.setEnabled(False)
         self.ExtremeStop()
 
