@@ -222,31 +222,34 @@ class TreadmillControl(QMainWindow):
 
     def get_speed_new(self, z):
         if self.calibration_zone:
-            max_speed = self.max_speed
             self.tr_len_default = self.treadmill_length * (10 ** -2)
             self.safe_zona_defalt = 0.3
             self.pre_sz, self.pre_tr = self.safe_zona_defalt,self.tr_len_default
             self.calibration_zone = False
-            safe_zona = self.safe_zona_defalt
-            tr_len = self.tr_len_default
+        max_speed = self.max_speed
+        safe_zona = self.safe_zona_defalt
+        tr_len = self.tr_len_default
         if z < 0:
             zn = -1
         else:
             zn = 1
         z = abs(z)
         z_correct = z - self.safe_zona_defalt
-        if 0<z_correct < self.safe_zona_defalt:
+        if z_correct < self.safe_zona_defalt:
             new_safe_zona = max(0.01, self.safe_zona_defalt-z_correct)
             new_tr_len = max(0.01, self.tr_len_default-z_correct)
             if new_safe_zona<self.pre_sz:
                 self.pre_sz = new_safe_zona
                 safe_zona = new_safe_zona
+            else:
+                safe_zona = self.pre_sz
             if new_tr_len<self.pre_tr:
                 self.pre_tr = new_tr_len
                 tr_len = new_tr_len
-        if z< 0.03:
+            else:
+                tr_len = self.pre_tr
+        if z< 0.03 or self.current_speed ==0:
             self.pre_sz, self.pre_tr = self.safe_zona_defalt, self.tr_len_default
-            self.calibration_zone = False
             safe_zona = self.safe_zona_defalt
             tr_len = self.tr_len_default
         print("TEST", z,safe_zona,tr_len)
@@ -259,16 +262,16 @@ class TreadmillControl(QMainWindow):
                 speed = (z - safe_zona) * max_speed / (delta)
 
 
-                delta_speed = abs(zn * min(max_speed, speed)) - abs(self.last_speed)
-                print("*******", delta_speed)
-                if delta_speed < -0.5:
-                    ks = 1.3
-                    print("work zona - TORMOZHENIE")
-                else:
-                    ks = 1
+                #delta_speed = abs(zn * min(max_speed, speed)) - abs(self.last_speed)
+                #print("*******", delta_speed)
+                #if delta_speed < -0.5:
+                #    ks = 1.3
+                #    print("work zona - TORMOZHENIE")
+               # else:
+               #     ks = 1
 
                 print("work zona")
-                return zn * min(max_speed, speed * ks)
+                return zn * min(max_speed, speed)
             else:
 
                 print("far zona speed")
