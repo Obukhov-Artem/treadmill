@@ -14,7 +14,7 @@ import math
 import socket
 
 u = 0
-SERIAL = b'LHR-1761CD18'
+SERIAL = b'LHR-9D5EB008'
 drag_coefficient = 255
 max_speed = 255
 
@@ -239,7 +239,7 @@ class TreadmillControl(QMainWindow):
     def get_speed_new(self, z):
         if self.calibration_zone:
             self.tr_len_default = self.treadmill_length * (10 ** -2)
-            self.safe_zona_defalt = 0.3
+            self.safe_zona_defalt = 0.2
             self.pre_sz, self.pre_tr = self.safe_zona_defalt,self.tr_len_default
             self.calibration_zone = False
         max_speed = self.max_speed
@@ -251,7 +251,7 @@ class TreadmillControl(QMainWindow):
             zn = 1
         z = abs(z)
         z_correct = z - self.safe_zona_defalt
-        if z_correct < self.safe_zona_defalt:
+        if z_correct >0:
             new_safe_zona = max(0.01, self.safe_zona_defalt-z_correct)
             new_tr_len = max(0.01, self.tr_len_default-z_correct)
             if new_safe_zona<self.pre_sz:
@@ -339,7 +339,7 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
         self.current_speed = 0
-        self.record_flag = False
+        self.record_flag = True
         self.data_coord = []
         #print(self.slovar_trackers)
         try:
