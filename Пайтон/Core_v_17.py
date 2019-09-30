@@ -163,7 +163,7 @@ class TreadmillControl(QMainWindow):
             zn = 1
         z = abs(z)
         if z < safe_zona:
-            print("safe zona")
+            #print("safe zona")
             return 0
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
@@ -172,21 +172,21 @@ class TreadmillControl(QMainWindow):
 
 
                 delta_speed =  abs(zn*min(max_speed, speed))-abs(self.last_speed)
-                print("*******", delta_speed)
+                #print("*******", delta_speed)
                 if delta_speed <-0.5:
                     ks = 1.3
-                    print("work zona - TORMOZHENIE")
+                    #print("work zona - TORMOZHENIE")
                 else:
                     ks = 1
 
-                print("work zona")
+                #print("work zona")
                 return  zn*min(max_speed, speed*ks)
             else:
 
-                print("far zona speed")
+                #print("far zona speed")
                 return zn*max_speed
         elif z> tr_len:
-            print("far zona")
+            #print("far zona")
             return zn * max_speed
         else:
             print("error")
@@ -259,7 +259,7 @@ class TreadmillControl(QMainWindow):
                             self.last_speed = self.current_speed
                             continue
 
-                        print("send_norm", self.current_speed)
+                        #print("send_norm", self.current_speed)
                         self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
                         print("ARDUINO", self.arduino.readline())
                         s = bytes(str(int(self.current_speed)), 'utf-8')

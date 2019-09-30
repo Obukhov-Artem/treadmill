@@ -168,15 +168,18 @@ class TreadmillControl(QMainWindow):
 
         self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
         time.sleep(0.1)
+        print(self.arduino.readline())
         self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
         time.sleep(0.1)
+        print(self.arduino.readline())
         self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
         time.sleep(0.1)
+        print(self.arduino.readline())
         self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
         time.sleep(0.1)
+        print(self.arduino.readline())
 
         print("**************************")
-        print(self.arduino.readline())
         print("**************************")
 
         self.StartButton.setEnabled(False)
@@ -265,7 +268,7 @@ class TreadmillControl(QMainWindow):
             self.pre_sz, self.pre_tr = self.safe_zona_defalt, self.tr_len_default
             safe_zona = self.safe_zona_defalt
             tr_len = self.tr_len_default
-        print("TEST", z,safe_zona,tr_len)
+       # print("TEST", z,safe_zona,tr_len)
         if z < safe_zona:
             print("safe zona")
             return 0
@@ -283,11 +286,11 @@ class TreadmillControl(QMainWindow):
                # else:
                #     ks = 1
 
-                print("work zona")
+               # print("work zona")
                 return zn * min(max_speed, speed)
             else:
 
-                print("far zona speed")
+                #print("far zona speed")
                 return zn * max_speed
         elif z > tr_len:
             print("far zona")
@@ -346,39 +349,44 @@ class TreadmillControl(QMainWindow):
             flag_error = False
 
             while self.MainWhile:  # or self.current_speed != 0
-                if time.time() > self.starttime + 1 / 50:
-                    self.starttime = time.time()
-                    position_device = v.devices[device].sample(1, 500)
-                    if position_device:
-                        z = position_device.get_position_z()[0]
-                        if z == 0.0 and not flag_error:
-                            z = z_last
-                            flag_error = True
 
-                        elif z == 0.0 and flag_error:
-                            self.last_speed = 0
-                            self.ExtremeStop()
-                            print("Stop")
+                position_device = v.devices[device].sample(1, 500)
+                if position_device:
+                    z = position_device.get_position_z()[0]
+                    if z == 0.0 and not flag_error:
+                        z = z_last
+                        flag_error = True
 
-                        else:
-                            z = z - self.human_0[2]
-                            self.current_speed = self.get_speed_new(z)
-                            if self.record_flag:
+                    elif z == 0.0 and flag_error:
+                        self.last_speed = 0
+                        self.ExtremeStop()
+                        print("Stop")
+
+                    else:
+                        z = z - self.human_0[2]
+                        self.current_speed = self.get_speed_new(z)
+                        if self.record_flag:
+                            if time.time() > self.starttime + 1 / 50:
                                 self.data_coord.append(self.get_all_position(v))
+                                self.starttime = time.time()
 
-                            if abs(self.current_speed - self.last_speed) > 30:
-                                print("ERROR", abs(self.current_speed - self.last_speed))
-                                self.last_speed = self.current_speed
-                                continue
+                        if abs(self.current_speed - self.last_speed) > 30:
+                            print("ERROR", abs(self.current_speed - self.last_speed))
+                            if self.current_speed > self.last_speed:
+                                self.last_speed = self.last_speed+2
+                            else:
+                                self.last_speed = self.last_speed-2
+                            self.current_speed = self.last_speed
 
-                            print("send_norm", self.current_speed)
-                            self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
-                            print("ARDUINO", self.arduino.readline())
-                            s = bytes(str(int(self.current_speed)), 'utf-8')
-                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                             (UDP_IP, UDP_PORT_Unity))
-                            z_last = z
-                            self.last_speed = self.current_speed
+
+                        #print("send_norm", self.current_speed)
+                        self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                        print("ARDUINO", self.arduino.readline())
+                        s = bytes(str(int(self.current_speed)), 'utf-8')
+                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                         (UDP_IP, UDP_PORT_Unity))
+                        z_last = z
+                        self.last_speed = self.current_speed
                 self.Display.display(int(self.current_speed))
 
             #data = self.arduino.readline().decode().split()
