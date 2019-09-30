@@ -340,8 +340,7 @@ class TreadmillControl(QMainWindow):
             flag_error = False
 
             while self.MainWhile:  # or self.current_speed != 0
-                if time.time() > self.starttime + 1 / 50:
-                    self.starttime = time.time()
+
                     position_device = v.devices[device].sample(1, 500)
                     if position_device:
                         z = position_device.get_position_z()[0]
@@ -358,7 +357,9 @@ class TreadmillControl(QMainWindow):
                             z = z - self.human_0[2]
                             self.current_speed = self.get_speed_new(z)
                             if self.record_flag:
-                                self.data_coord.append(self.get_all_position(v))
+                                if time.time() > self.starttime + 1 / 50:
+                                    self.starttime = time.time()
+                                    self.data_coord.append(self.get_all_position(v))
 
                             if abs(self.current_speed - self.last_speed) > 30:
                                 print("ERROR", abs(self.current_speed - self.last_speed))
