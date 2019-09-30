@@ -362,7 +362,10 @@ class TreadmillControl(QMainWindow):
 
                             if abs(self.current_speed - self.last_speed) > 30:
                                 print("ERROR", abs(self.current_speed - self.last_speed))
-                                self.last_speed = self.current_speed
+                                if self.current_speed > self.last_speed:
+                                    self.last_speed = self.last_speed+3
+                                else:
+                                    self.last_speed = self.last_speed-3
                                 continue
 
                             print("send_norm", self.current_speed)
