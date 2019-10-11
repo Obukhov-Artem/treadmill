@@ -15,14 +15,21 @@ import socket
 
 u = 0
 #SERIAL = b'LHR-1761CD18'
-SERIAL = b'LHR-FFB5BB42'
 drag_coefficient = 255
 max_speed = 255
-
-UDP_IP = "192.168.137.143"
 UDP_PORT_Rec = 3040
 UDP_PORT_Unity = 3031
 
+try:
+    f = open("port.txt",'rb')
+    SERIAL = f.read()
+    f1 = open('IP.txt', 'r')
+    UDP_IP = f1.read()
+
+except Exception as e:
+    SERIAL = b'LHR-9D5EB008'
+    UDP_IP = "192.168.137.143"
+    print('File not found')
 
 class TreadmillControl(QMainWindow):
     def __init__(self):
@@ -116,32 +123,36 @@ class TreadmillControl(QMainWindow):
         self.slovar_trackers = {"Человек": human_pos}
 
     def closeEvent(self, event):
-        self.stop()
-        self.conn.close()
-        print("EXIT")
+        print("EXITING")
+        if self.arduino != None:
+            self.stop()
+            self.conn.close()
+            print("EXIT")
 
     def start(self):
-        self.MainWhile = True
-        main_while_thread = threading.Thread(target=self.main_while)
-        main_while_thread.start()
+
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
+        else:
+            print(self.arduino)
+            self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+            time.sleep(0.1)
+            self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+            time.sleep(0.1)
+            self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+            time.sleep(0.1)
+            self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+            time.sleep(0.1)
 
-        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-        time.sleep(0.1)
-        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-        time.sleep(0.1)
-        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-        time.sleep(0.1)
-        self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-        time.sleep(0.1)
-
-        print("**************************")
-        print(self.arduino.readline())
-        print("**************************")
-        self.StartButton.setEnabled(False)
-        self.ArduinoBar.setEnabled(False)
-        self.StopButton.setEnabled(True)
+            print("**************************")
+            print(self.arduino.readline())
+            print("**************************")
+            self.MainWhile = True
+            main_while_thread = threading.Thread(target=self.main_while)
+            main_while_thread.start()
+            self.StartButton.setEnabled(False)
+            self.ArduinoBar.setEnabled(False)
+            self.StopButton.setEnabled(True)
 
     def get_r(self, data):
         current = data[-1]
@@ -193,9 +204,9 @@ class TreadmillControl(QMainWindow):
             return 0
 
     def ExtremeStop(self):  # problem
-        print("*" * 10, "Extreme stop", self.current_speed)
-        self.MainWhile = False
         try:
+            print("*" * 10, "Extreme stop", self.current_speed)
+            self.MainWhile = False
 
             if self.current_speed > 0:
                 self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
@@ -205,7 +216,7 @@ class TreadmillControl(QMainWindow):
                     #self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
                     self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                     print(str(int(max(self.current_speed, 0))) + '.')
-                    time.sleep(0.05)
+                    #time.sleep(0.05)
 
             else:
                 self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
@@ -213,19 +224,20 @@ class TreadmillControl(QMainWindow):
                     self.current_speed += 2
                     print("extreme", self.current_speed)
                     #self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
-                    self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+                    self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                     print(str(int(min(self.current_speed, 0))) + '.')
-                    time.sleep(0.05)
-        except Exception:
-            self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
+                    #time.sleep(0.05)
 
 
 
-        self.last_speed = 0
-        self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
-        self.current_speed = 0
+            self.last_speed = 0
+            #self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
+            self.current_speed = 0
 
-        self.StartButton.setEnabled(True)
+            self.StartButton.setEnabled(True)
+            print("STOP complete")
+        except Exception as e:
+            print(e, e.__class__,e.__annotations__)
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
@@ -282,11 +294,14 @@ class TreadmillControl(QMainWindow):
             print(e, e.__class__)
             self.MainWhile = False
             self.ExtremeStop()
+            return
         return
 
     def stop(self):
+        if self.arduino:
+            self.ExtremeStop()
+
         self.StopButton.setEnabled(False)
-        self.ExtremeStop()
 
     def ard_connect(self):
         try:

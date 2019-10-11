@@ -239,7 +239,7 @@ class TreadmillControl(QMainWindow):
     def get_speed_new(self, z):
         if self.calibration_zone:
             self.tr_len_default = self.treadmill_length * (10 ** -2)
-            self.safe_zona_defalt = 0.2
+            self.safe_zona_defalt = 0.3
             self.pre_sz, self.pre_tr = self.safe_zona_defalt,self.tr_len_default
             self.calibration_zone = False
         max_speed = self.max_speed
@@ -264,7 +264,7 @@ class TreadmillControl(QMainWindow):
                 tr_len = new_tr_len
             else:
                 tr_len = self.pre_tr
-        if z< 0.03 or self.current_speed ==0:
+        if z< self.safe_zona_defalt/2 or self.current_speed ==0:
             self.pre_sz, self.pre_tr = self.safe_zona_defalt, self.tr_len_default
             safe_zona = self.safe_zona_defalt
             tr_len = self.tr_len_default
@@ -308,20 +308,20 @@ class TreadmillControl(QMainWindow):
                 self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                 while self.current_speed > 0:
                     self.current_speed -= 2
-                    print("extreme", self.current_speed)
+                    #print("extreme", self.current_speed)
                     #self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
                     self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
-                    print(str(int(max(self.current_speed, 0))) + '.')
+                    #print(str(int(max(self.current_speed, 0))) + '.')
                     time.sleep(0.05)
 
             else:
                 self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                 while self.current_speed < 0:
                     self.current_speed += 2
-                    print("extreme", self.current_speed)
+                    #print("extreme", self.current_speed)
                     #self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
-                    self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
-                    print(str(int(min(self.current_speed, 0))) + '.')
+                    self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
+                    #print(str(int(min(self.current_speed, 0))) + '.')
                     time.sleep(0.05)
         except Exception:
             self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
