@@ -21,13 +21,13 @@ UDP_PORT_Rec = 3040
 UDP_PORT_Unity = 3031
 
 try:
-    f = open("port.txt",'rb')
+    f = open("port.txt",'r')
     SERIAL = f.read()
     f1 = open('IP.txt', 'r')
     UDP_IP = f1.read()
 
 except Exception as e:
-    SERIAL = b'LHR-9D5EB008'
+    SERIAL = 'LHR-9D5EB008'
     UDP_IP = "192.168.137.143"
     print('File not found')
 
@@ -302,6 +302,7 @@ class TreadmillControl(QMainWindow):
             self.ExtremeStop()
 
         self.StopButton.setEnabled(False)
+        self.ArduinoBar.setEnabled(True)
 
     def ard_connect(self):
         try:
