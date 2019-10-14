@@ -111,7 +111,7 @@ class TreadmillControl(QMainWindow):
                              v.devices[device].get_serial(),
                              v.device_index_map[v.devices[device].index]))
                         print(v.devices[device].get_serial())
-                        if v.devices[device].get_serial() == SERIAL:
+                        if v.devices[device].get_serial() == SERIAL or v.devices[device].get_serial() == SERIAL.encode():
                             print("OK")
                             self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
                                             position_device.get_position_z()[0]]
