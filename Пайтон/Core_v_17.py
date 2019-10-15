@@ -133,16 +133,23 @@ class TreadmillControl(QMainWindow):
 
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
+            print(self.arduino)
+            print("Not connection with arduino")
         else:
             print(self.arduino)
+
             self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
             time.sleep(0.1)
-            self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-            time.sleep(0.1)
-            self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-            time.sleep(0.1)
-            self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-            time.sleep(0.1)
+            answer = self.arduino.readline()
+            while True:
+
+                print(answer)
+                self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+                time.sleep(0.1)
+                answer = self.arduino.readline()
+                a1 = "Speed".encode()  in answer
+                if  a1 :
+                    break
 
             print("**************************")
             print(self.arduino.readline())
@@ -211,7 +218,7 @@ class TreadmillControl(QMainWindow):
             if self.current_speed > 0:
                 self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                 while self.current_speed > 0:
-                    self.current_speed -= 2
+                    self.current_speed -= 5
                     print("extreme", self.current_speed)
                     #self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
                     self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
@@ -221,7 +228,7 @@ class TreadmillControl(QMainWindow):
             else:
                 self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                 while self.current_speed < 0:
-                    self.current_speed += 2
+                    self.current_speed += 5
                     print("extreme", self.current_speed)
                     #self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
                     self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
