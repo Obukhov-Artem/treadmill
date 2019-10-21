@@ -40,6 +40,7 @@ class TreadmillControl(QMainWindow):
         self.current_speed = 0
         self.treadmill_length = 70
         self.max_speed = 255
+        self.human_pos = None
 
         self.MainWhile = False
         self.ArdWhile = False
@@ -93,12 +94,12 @@ class TreadmillControl(QMainWindow):
     def calibration(self):
         self.z_napr = 1
         v = triad_openvr.triad_openvr()
-        human_pos = None
+        self.human_pos = None
         hmd_pos = None
         self.human_0 = None
         pos_devices_array = []
         n = 1
-        while n > 0 and human_pos is None:
+        while n > 0 and self.human_pos is None:
             n -= 1
             for device in v.devices:
                 position_device = v.devices[device].sample(1, 500)
@@ -121,12 +122,12 @@ class TreadmillControl(QMainWindow):
                             print("OK")
                             self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
                                             position_device.get_position_z()[0]]
-                            human_pos = (v.devices[device].get_serial(),
+                            self.human_pos = (v.devices[device].get_serial(),
                                          v.device_index_map[v.devices[device].index])
 
             p_a = sorted(pos_devices_array, key=lambda x: x[1])
             print(p_a)
-        self.slovar_trackers = {"Человек": human_pos}
+        self.slovar_trackers = {"Человек": self.human_pos}
 
     def closeEvent(self, event):
         print("EXITING")
@@ -387,10 +388,8 @@ class TreadmillControl(QMainWindow):
     def ard_change_trackers(self):
         global SERIAL
         accept_trackers = []
-        v = triad_openvr.triad_openvr()
-        for device in v.devices:
-            a = v.devices[device].get_serial()
-            accept_trackers.append(a)
+        for device in self.human_pos:
+            accept_trackers.append(device)
         new, ok = QInputDialog.getItem(self, "Трекеры", "Доступные трекеры", accept_trackers, False)
         if ok:
             self.ard_trackers = new
