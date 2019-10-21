@@ -12,6 +12,15 @@ import sys
 import csv
 import math
 import socket
+import logging
+
+# add filemode="w" to overwrite
+logger = logging.getLogger("treadmill")
+logger.setLevel(logging.INFO)
+fh = logging.FileHandler("treadmill_log.log")
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 u = 0
 #SERIAL = b'LHR-1761CD18'
@@ -21,12 +30,14 @@ UDP_PORT_Rec = 3040
 UDP_PORT_Unity = 3031
 
 try:
+    logger.info("Program started")
     f = open("port.txt",'r')
     SERIAL = f.read()
     f1 = open('IP.txt', 'r')
     UDP_IP = f1.read()
 
 except Exception as e:
+    logger.error("Program not started")
     SERIAL = 'LHR-9D5EB008'
     UDP_IP = "192.168.137.143"
     print('File not found')
@@ -46,6 +57,7 @@ class TreadmillControl(QMainWindow):
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.conn.bind(('', UDP_PORT_Rec))
 
+
         # Предустановка Arduino
         try:
             x = self.Search()
@@ -53,6 +65,9 @@ class TreadmillControl(QMainWindow):
             self.ArdComPort.setText(f'''<p align="center">{x[0]}</p>''')
         except:
             self.COM_port = None
+
+        logger.info("self.COM_port=")
+        logger.info(self.COM_port)
 
         self.ard_speed = 115200
         self.arduino = None
@@ -62,6 +77,8 @@ class TreadmillControl(QMainWindow):
             except:
                 pass
 
+        logger.info("self.arduino=")
+        logger.info(self.arduino)
         # Калибровка датчиков
         self.calibration()
 
@@ -88,6 +105,9 @@ class TreadmillControl(QMainWindow):
     def calibration(self):
         self.z_napr = 1
         v = triad_openvr.triad_openvr()
+
+        logger.info("calibration")
+        logger.info(v)
         human_pos = None
         hmd_pos = None
         self.human_0 = None
@@ -104,23 +124,34 @@ class TreadmillControl(QMainWindow):
                         hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0],
                                    position_device.get_position_z()[0],
                                    v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
+
+                        logger.info("HMD")
+                        logger.info(hmd_pos)
                     else:
                         pos_devices_array.append(
                             (position_device.get_position_x()[0], position_device.get_position_y()[0],
                              position_device.get_position_z()[0],
                              v.devices[device].get_serial(),
                              v.device_index_map[v.devices[device].index]))
+
+                        logger.info("device status =")
+                        logger.info(v.devices[device].get_serial())
                         print(v.devices[device].get_serial())
                         if v.devices[device].get_serial() == SERIAL or v.devices[device].get_serial() == SERIAL.encode():
                             print("OK")
+                            logger.info("Controller find. OK")
                             self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
                                             position_device.get_position_z()[0]]
                             human_pos = (v.devices[device].get_serial(),
                                          v.device_index_map[v.devices[device].index])
 
+                            logger.info(human_pos)
+
             p_a = sorted(pos_devices_array, key=lambda x: x[1])
             print(p_a)
         self.slovar_trackers = {"Человек": human_pos}
+        logger.info("slovar_trackers=")
+        logger.info(self.slovar_trackers)
 
     def closeEvent(self, event):
         print("EXITING")
@@ -131,12 +162,15 @@ class TreadmillControl(QMainWindow):
 
     def start(self):
 
+        logger.info("start")
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
             print(self.arduino)
             print("Not connection with arduino")
+            logger.error("Not connection with arduino")
         else:
             print(self.arduino)
+            logger.info(self.arduino)
 
             self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
             time.sleep(0.1)
@@ -144,6 +178,8 @@ class TreadmillControl(QMainWindow):
             while True:
 
                 print(answer)
+
+                logger.info(answer)
                 self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
                 time.sleep(0.1)
                 answer = self.arduino.readline()
@@ -153,8 +189,10 @@ class TreadmillControl(QMainWindow):
 
             print("**************************")
             print(self.arduino.readline())
+            logger.info("Arduino connect")
             print("**************************")
             self.MainWhile = True
+            logger.info("self.MainWhile = True")
             main_while_thread = threading.Thread(target=self.main_while)
             main_while_thread.start()
             self.StartButton.setEnabled(False)
@@ -174,7 +212,7 @@ class TreadmillControl(QMainWindow):
     def get_speed(self, z):
         max_speed = self.max_speed
         tr_len = self.treadmill_length * (10**-2)
-        safe_zona = 0.1
+        safe_zona = 0.25
         if z<0:
             zn = -1
         else:
@@ -192,7 +230,7 @@ class TreadmillControl(QMainWindow):
                 delta_speed =  abs(zn*min(max_speed, speed))-abs(self.last_speed)
                 #print("*******", delta_speed)
                 if delta_speed <-0.5:
-                    ks = 1.3
+                    ks = 1
                     #print("work zona - TORMOZHENIE")
                 else:
                     ks = 1
@@ -210,8 +248,9 @@ class TreadmillControl(QMainWindow):
             print("error")
             return 0
 
-    def ExtremeStop(self):  # problem
+    def ExtremeStop(self):  # problem ожидать wait connect
         try:
+            logger.info("Extreme stop")
             print("*" * 10, "Extreme stop", self.current_speed)
             self.MainWhile = False
 
@@ -244,49 +283,72 @@ class TreadmillControl(QMainWindow):
             self.StartButton.setEnabled(True)
             print("STOP complete")
         except Exception as e:
-            print(e, e.__class__,e.__annotations__)
+            logger.error("EXTREME z = "  + "last_speed = " + str(self.last_speed) + " speed=" + str(
+                self.current_speed))
+            logger.error(e)
+            print("EXTREME",e, e.__class__)
+
 
     def main_while(self):
+
+        logger.info("main_while")
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
         self.current_speed = 0
         try:
             v = triad_openvr.triad_openvr()
+
+            logger.info(v)
             current_serial, device = self.slovar_trackers["Человек"]
+            logger.info("current_serial, device")
+            logger.info(current_serial)
+            logger.info(device)
             z_last = 0
             flag_error = False
 
-            while self.MainWhile:  # or self.current_speed != 0
-                position_device = v.devices[device].sample(1, 500)
-                if position_device:
-                    z = position_device.get_position_z()[0]
-                    if z == 0.0 and not flag_error:
-                        z = z_last
-                        flag_error = True
+            while self.MainWhile:
+                try:
+                # or self.current_speed != 0
+                    position_device = v.devices[device].sample(1, 500)
+                    if position_device:
+                        z = position_device.get_position_z()[0]
+                        if z == 0.0 and not flag_error:
+                            z = z_last
+                            flag_error = True
+                            logger.error("flag_error start z = "+str(z)+" speed="+str(self.current_speed))
 
-                    elif z == 0.0 and flag_error:
-                        self.last_speed = 0
-                        self.ExtremeStop()
-                        print("Stop")
+                        elif z == 0.0 and flag_error:
+                            logger.error("flag_error end z = "+str(z)+" speed="+str(self.current_speed))
+                            self.last_speed = 0
+                            self.ExtremeStop()
+                            print("Stop")
 
-                    else:
-                        z = z - self.human_0[2]
-                        self.current_speed = self.get_speed(z)
+                        else:
+                            z = z - self.human_0[2]
+                            self.current_speed = self.get_speed(z)
 
-                        if abs(self.current_speed - self.last_speed) > 30:
-                            print("ERROR", abs(self.current_speed - self.last_speed))
+                            if abs(self.current_speed - self.last_speed) > 30:
+                                logger.error("ERROR z = " + str(z) + "last_speed = " + str(self.last_speed) + " speed=" + str(self.current_speed))
+                                print("ERROR", abs(self.current_speed - self.last_speed))
+                                self.last_speed = self.current_speed
+                                continue
+
+                            #print("send_norm", self.current_speed)
+                            self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                            print("ARDUINO", self.arduino.readline())
+                            s = bytes(str(int(self.current_speed)), 'utf-8')
+                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                             (UDP_IP, UDP_PORT_Unity))
+                            z_last = z
                             self.last_speed = self.current_speed
-                            continue
+                    self.Display.display(int(self.current_speed))
+                except ZeroDivisionError as zero:
+                    logger.error("ZeroDivisionError z = " + str(z) + "last_speed = " + str(self.last_speed) + " speed=" + str(self.current_speed))
+                    logger.error(zero)
 
-                        #print("send_norm", self.current_speed)
-                        self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
-                        print("ARDUINO", self.arduino.readline())
-                        s = bytes(str(int(self.current_speed)), 'utf-8')
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                         (UDP_IP, UDP_PORT_Unity))
-                        z_last = z
-                        self.last_speed = self.current_speed
-                self.Display.display(int(self.current_speed))
+                    print("ZERO",zero)
+                    print(z,self.current_speed)
+                    continue
             data = self.arduino.readline().decode().split()
 
             if 'treadmill' in data:
@@ -298,7 +360,10 @@ class TreadmillControl(QMainWindow):
             self.StartButton.setEnabled(True)
 
         except Exception as e:
-            print(e, e.__class__)
+            print("MAIN EXCEPTION",e, e.__class__)
+            logger.error("EXCEPTION z = " + str(z) + "last_speed = " + str(self.last_speed) + " speed=" + str(
+                self.current_speed))
+            logger.error(e)
             self.MainWhile = False
             self.ExtremeStop()
             return
