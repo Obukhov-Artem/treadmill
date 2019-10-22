@@ -175,14 +175,15 @@ class TreadmillControl(QMainWindow):
             self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
             time.sleep(0.1)
             answer = self.arduino.readline()
+            print(answer)
             while True:
 
-                print(answer)
 
                 logger.info(answer)
                 self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
                 time.sleep(0.1)
                 answer = self.arduino.readline()
+                print(answer)
                 a1 = "Speed".encode()  in answer
                 if  a1 :
                     break
@@ -248,6 +249,14 @@ class TreadmillControl(QMainWindow):
             print("error")
             return 0
 
+    def get_arduino_speed(self):
+        answer = self.arduino.readline().decode()
+        if "Speed" in answer:
+            answer = answer.split("=")[-1]
+        return answer
+
+
+
     def ExtremeStop(self):  # problem ожидать wait connect
         try:
             logger.info("Extreme stop")
@@ -257,22 +266,19 @@ class TreadmillControl(QMainWindow):
             if self.current_speed > 0:
                 self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                 while self.current_speed > 0:
-                    self.current_speed -= 5
-                    print("extreme", self.current_speed)
-                    #self.arduino.write(bytes(str(int(max(self.current_speed, 0))) + '.', 'utf-8'))
+                    self.current_speed -= 1
                     self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
-                    print(str(int(max(self.current_speed, 0))) + '.')
-                    #time.sleep(0.05)
+                    answer = self.get_arduino_speed()
+                    print(answer)
 
             else:
                 self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                 while self.current_speed < 0:
-                    self.current_speed += 5
+                    self.current_speed += 1
                     print("extreme", self.current_speed)
-                    #self.arduino.write(bytes(str(int(min(self.current_speed, 0))) + '.', 'utf-8'))
                     self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
-                    print(str(int(min(self.current_speed, 0))) + '.')
-                    #time.sleep(0.05)
+                    answer = self.get_arduino_speed()
+                    print(answer)
 
 
 
@@ -294,6 +300,7 @@ class TreadmillControl(QMainWindow):
         logger.info("main_while")
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
+        z =0
         self.current_speed = 0
         try:
             v = triad_openvr.triad_openvr()
@@ -330,7 +337,7 @@ class TreadmillControl(QMainWindow):
                             if abs(self.current_speed - self.last_speed) > 30:
                                 logger.error("ERROR z = " + str(z) + "last_speed = " + str(self.last_speed) + " speed=" + str(self.current_speed))
                                 print("ERROR", abs(self.current_speed - self.last_speed))
-                                self.last_speed = self.current_speed
+                                self.current_speed = self.last_speed
                                 continue
 
                             #print("send_norm", self.current_speed)
