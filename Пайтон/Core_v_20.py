@@ -144,7 +144,7 @@ def ExtremeStop():  # problem
     current_speed = 0
 
 
-arduino = serial.Serial("COM6", 115200)
+arduino = serial.Serial("COM5", 115200)
 time.sleep(1)
 
 calibration()
