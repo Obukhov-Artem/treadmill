@@ -235,7 +235,7 @@ class TreadmillControl(QMainWindow):
                     #print("work zona - TORMOZHENIE")
                 else:
                     ks = 1
-                if speed <20:
+                if speed <5:
                     speed =0
 
                 #print("work zona")
@@ -336,7 +336,7 @@ class TreadmillControl(QMainWindow):
                             z = z - self.human_0[2]
                             self.current_speed = self.get_speed(z)
 
-                            if abs(self.current_speed - self.last_speed) > 30:
+                            if abs(self.current_speed - self.last_speed) > 50:
                                 logger.error("ERROR z = " + str(z) + "last_speed = " + str(self.last_speed) + " speed=" + str(self.current_speed))
                                 print("ERROR", abs(self.current_speed - self.last_speed))
                                 self.current_speed = self.last_speed
@@ -403,7 +403,7 @@ class TreadmillControl(QMainWindow):
 
     def Search(self, __baudrate=115200):
         __COMlist = []
-        __COM = ['COM' + str(i) for i in range(4, 100)]
+        __COM = ['COM' + str(i) for i in range(2, 100)]
 
         for _COM in __COM:
             try:
