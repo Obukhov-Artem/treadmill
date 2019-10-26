@@ -70,6 +70,7 @@ class TreadmillControl(QMainWindow):
 
         # Ui
         self.StartButton.clicked.connect(self.start)
+        self.UP_Button.clicked.connect(self.update_ip)
         self.Calibration_button.clicked.connect(self.calibration)
         self.StopButton.clicked.connect(self.stop)
         self.IP.setText("192.168.137.143")
@@ -137,7 +138,6 @@ class TreadmillControl(QMainWindow):
             print("EXIT")
 
     def start(self):
-        global UDP_IP
 
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
@@ -161,7 +161,6 @@ class TreadmillControl(QMainWindow):
             self.StartButton.setEnabled(False)
             self.ArduinoBar.setEnabled(False)
             self.StopButton.setEnabled(True)
-            UDP_IP = self.IP
 
     def get_r(self, data):
         current = data[-1]
@@ -247,6 +246,11 @@ class TreadmillControl(QMainWindow):
             print("STOP complete")
         except Exception as e:
             print(e, e.__class__,e.__annotations__)
+
+
+    def update_ip(self):
+        global UDP_IP
+        UDP_IP = self.IP.text()
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
