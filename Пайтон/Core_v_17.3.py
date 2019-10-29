@@ -286,6 +286,7 @@ class TreadmillControl(QMainWindow):
 
 
 
+
             self.last_speed = 0
             #self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
             self.current_speed = 0

@@ -73,7 +73,7 @@ class TreadmillControl(QMainWindow):
         self.UP_Button.clicked.connect(self.update_ip)
         self.Calibration_button.clicked.connect(self.calibration)
         self.StopButton.clicked.connect(self.stop)
-        self.IP.setText("192.168.137.143")
+        self.IP.setText("192.168.0.122")
         #   -- Max Speed bar
         self.MaxSpeedSlider.valueChanged.connect(self.speed_changed_slider)
         self.MaxSpeedBox.valueChanged.connect(self.speed_changed_box)
@@ -112,20 +112,37 @@ class TreadmillControl(QMainWindow):
                                    position_device.get_position_z()[0],
                                    v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
                     else:
+
                         self.pos_devices_array.append(
                             ( v.devices[device].get_serial(),
                              v.device_index_map[v.devices[device].index]))
                         print(v.devices[device].get_serial())
-                        self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
-                                        position_device.get_position_z()[0]]
-                        self.human_pos = (v.devices[device].get_serial(),
-                                     v.device_index_map[v.devices[device].index])
+                        if SERIAL is None:
+                            print("OK")
+                            self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                            position_device.get_position_z()[0]]
+                            self.human_pos = (v.devices[device].get_serial(),
+                                              v.device_index_map[v.devices[device].index])
+                        else:
+                            if v.devices[device].get_serial() == SERIAL or v.devices[device].get_serial() == SERIAL.encode():
+                                print("OK")
+                                self.human_0 = [position_device.get_position_x()[0],
+                                                position_device.get_position_y()[0],
+                                                position_device.get_position_z()[0]]
+                                self.human_pos = (v.devices[device].get_serial(),
+                                                  v.device_index_map[v.devices[device].index])
 
-            p_a = sorted(self.pos_devices_array, key=lambda x: x[1])
-            print(p_a)
+
+        p_a = sorted(self.pos_devices_array, key=lambda x: x[1])
+        print(p_a)
+        print("New postion")
+        pos_str = "x= "+str(self.human_0[0])[:3]+" y= "+str(self.human_0[1])[:3]+" z= "+str(self.human_0[2])[:3]+""
+        print(pos_str)
+        self.console_output("Калибровка относительно "+pos_str, color="#000000")
         self.slovar_trackers = {"Человек": self.human_pos}
         self.ard_trackers = self.human_pos
         self.Ard_trackers.setText(self.ard_trackers[0])
+
 
     def closeEvent(self, event):
         print("EXITING")
@@ -160,11 +177,14 @@ class TreadmillControl(QMainWindow):
             print("**************************")
             print(self.arduino.readline())
             print("**************************")
+
+            self.console_output("Платформа запущена.", color="#0000f8")
             self.MainWhile = True
             main_while_thread = threading.Thread(target=self.main_while)
             main_while_thread.start()
             self.StartButton.setEnabled(False)
             self.ArduinoBar.setEnabled(False)
+            self.Calibration_button.setEnabled(False)
             self.StopButton.setEnabled(True)
 
     def get_r(self, data):
@@ -180,7 +200,7 @@ class TreadmillControl(QMainWindow):
     def get_speed(self, z):
         max_speed = self.max_speed
         tr_len = self.treadmill_length * (10**-2)
-        safe_zona = 0.1
+        safe_zona = 0.15
         if z<0:
             zn = -1
         else:
@@ -193,7 +213,8 @@ class TreadmillControl(QMainWindow):
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
                 speed = (z-safe_zona)*max_speed/(delta)
-
+                if speed<5:
+                    safe_zona = 0
 
                 #print("work zona")
                 return  zn*min(max_speed, speed)
@@ -214,6 +235,8 @@ class TreadmillControl(QMainWindow):
 
     def ExtremeStop(self):  # problem
         try:
+
+            self.console_output("Остановка платформы.", color="#f80000")
             print("*" * 10, "Extreme stop", self.current_speed)
             self.MainWhile = False
 
@@ -240,6 +263,8 @@ class TreadmillControl(QMainWindow):
 
             self.StartButton.setEnabled(True)
             print("STOP complete")
+
+            self.console_output("Платформа остановлена", color="#f89000")
         except Exception as e:
             print("EXTREME", e, e.__class__)
 
@@ -247,6 +272,8 @@ class TreadmillControl(QMainWindow):
         global UDP_IP
         UDP_IP = self.IP.toPlainText()
         print("New IP",UDP_IP)
+
+        self.console_output("Установлен IP"+str(UDP_IP), color="#0000f8")
 
     def main_while(self):
         self.ConsoleOutput.verticalScrollBar()
@@ -322,6 +349,7 @@ class TreadmillControl(QMainWindow):
 
         self.StopButton.setEnabled(False)
         self.ArduinoBar.setEnabled(True)
+        self.Calibration_button.setEnabled(True)
 
     def ard_connect(self):
         try:
@@ -330,6 +358,7 @@ class TreadmillControl(QMainWindow):
             self.Status.setText('''<p align="center"><span style="color:#2f8700;">Подключено</span></p>''')
             self.Connect.setEnabled(False)
             self.Disconnect.setEnabled(True)
+            self.console_output("Соединение с Ардуино установлено.", color="#2f8700")
 
         except Exception as e:
             if self.COM_port:
@@ -406,6 +435,8 @@ class TreadmillControl(QMainWindow):
                 if device[0] == tracker:
                     self.ard_trackers = device
                     self.Ard_trackers.setText(tracker)
+
+                    self.console_output("Выбран трекер " + str(tracker), color="#0000f8")
 
 
     def ard_change_speed(self):
