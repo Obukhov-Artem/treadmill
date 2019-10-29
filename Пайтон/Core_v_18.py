@@ -14,7 +14,7 @@ import math
 import socket
 
 u = 0
-SERIAL = 'LHR-9D5EB008'
+SERIAL = None
 UDP_IP = "192.168.137.143"
 drag_coefficient = 255
 max_speed = 255
@@ -135,13 +135,14 @@ class TreadmillControl(QMainWindow):
 
         p_a = sorted(self.pos_devices_array, key=lambda x: x[1])
         print(p_a)
-        print("New postion")
-        pos_str = "x= "+str(self.human_0[0])[:3]+" y= "+str(self.human_0[1])[:3]+" z= "+str(self.human_0[2])[:3]+""
-        print(pos_str)
-        self.console_output("Калибровка относительно "+pos_str, color="#000000")
-        self.slovar_trackers = {"Человек": self.human_pos}
-        self.ard_trackers = self.human_pos
-        self.Ard_trackers.setText(self.ard_trackers[0])
+        if len(p_a)>0:
+            print("New postion")
+            pos_str = "x= "+str(self.human_0[0])[:3]+" y= "+str(self.human_0[1])[:3]+" z= "+str(self.human_0[2])[:5]+""
+            print(pos_str)
+            self.console_output("Калибровка "+pos_str, color="#000000")
+            self.slovar_trackers = {"Человек": self.human_pos}
+            self.ard_trackers = self.human_pos
+            self.Ard_trackers.setText(self.ard_trackers[0])
 
 
     def closeEvent(self, event):
@@ -278,8 +279,8 @@ class TreadmillControl(QMainWindow):
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
                 speed = (z-safe_zona)*max_speed/(delta)
-                if speed<5:
-                    safe_zona = 0
+                if speed<10:
+                    speed = 10
 
                 #print("work zona")
                 return  zn*min(max_speed, speed)
@@ -370,9 +371,9 @@ class TreadmillControl(QMainWindow):
 
                         else:
                             z = z - self.human_0[2]
-                            self.current_speed = self.get_speed(z)
+                            self.current_speed = self.get_speed_new(z)
 
-                            if abs(self.current_speed - self.last_speed) > 50:
+                            if abs(self.current_speed - self.last_speed) > 150:
                                 print("ERROR",self.current_speed,self.last_speed, abs(self.current_speed - self.last_speed))
                                 self.current_speed = self.last_speed
                                 continue
