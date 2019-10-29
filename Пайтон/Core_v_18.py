@@ -153,6 +153,7 @@ class TreadmillControl(QMainWindow):
 
     def start(self):
 
+        self.calibration_zone = True
         if not self.arduino:
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
             print(self.arduino)
@@ -196,6 +197,70 @@ class TreadmillControl(QMainWindow):
             return -1
         else:
             return 1
+
+
+    def get_speed_new(self, z):
+        max_speed = self.max_speed
+        tr_len = self.treadmill_length * (10 ** -2)
+        safe_zona = 0.2
+        if z < 0:
+            zn = -1
+        else:
+            zn = 1
+        z = abs(z)
+        if self.moving:
+            if z < safe_zona / 4:
+                self.moving = False
+                return 0
+            elif safe_zona/4 <= z <= safe_zona:
+                delta = tr_len - safe_zona
+                speed = (z - safe_zona/4) * max_speed / (delta)
+                if speed < 5:
+                    safe_zona = 0
+
+                # print("work zona")
+                return zn * min(max_speed, speed)
+            elif safe_zona <= z <= tr_len:
+
+                delta = tr_len - safe_zona
+                if z * drag_coefficient <= max_speed:
+                    speed = (z - safe_zona/4) * max_speed / (delta)
+                    if speed < 5:
+                        safe_zona = 0
+
+                    # print("work zona")
+                    return zn * min(max_speed, speed)
+                else:
+
+                    # print("far zona speed")
+                    return zn * max_speed
+            elif z > tr_len:
+                # print("far zona")
+                return zn * max_speed
+            else:
+                print("error")
+                return 0
+        else:
+            if z < safe_zona:
+                return 0
+            elif safe_zona <= z <= tr_len:
+                self.moving = True
+                delta = tr_len - safe_zona
+                if z * drag_coefficient <= max_speed:
+                    speed = (z - safe_zona) * max_speed / (delta)
+                    if speed < 5:
+                        safe_zona = 0
+
+                    # print("work zona")
+                    return zn * min(max_speed, speed)
+                else:
+
+                    # print("far zona speed")
+                    return zn * max_speed
+            else:
+                print("error")
+                return 0
+
 
     def get_speed(self, z):
         max_speed = self.max_speed
@@ -276,6 +341,7 @@ class TreadmillControl(QMainWindow):
         self.console_output("Установлен IP"+str(UDP_IP), color="#0000f8")
 
     def main_while(self):
+        self.moving = False
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
         z = 0
@@ -435,7 +501,7 @@ class TreadmillControl(QMainWindow):
                 if device[0] == tracker:
                     self.ard_trackers = device
                     self.Ard_trackers.setText(tracker)
-
+                    SERIAL = tracker
                     self.console_output("Выбран трекер " + str(tracker), color="#0000f8")
 
 
