@@ -210,10 +210,12 @@ class TreadmillControl(QMainWindow):
         else:
             return 1
 
+
+
     def get_speed(self, z):
         max_speed = self.max_speed
         tr_len = self.treadmill_length * (10**-2)
-        safe_zona = 0.25
+        safe_zona = 0.15
         if z<0:
             zn = -1
         else:
@@ -235,8 +237,8 @@ class TreadmillControl(QMainWindow):
                     #print("work zona - TORMOZHENIE")
                 else:
                     ks = 1
-                if speed <5:
-                    speed =0
+                #if speed <5:
+                #   speed =0
 
                 #print("work zona")
                 return  zn*min(max_speed, speed*ks)
