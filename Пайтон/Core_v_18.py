@@ -203,21 +203,21 @@ class TreadmillControl(QMainWindow):
     def get_speed_new(self, z):
         max_speed = self.max_speed
         tr_len = self.treadmill_length * (10 ** -2)
-        safe_zona = 0.2
+        safe_zona = 0.25
         if z < 0:
             zn = -1
         else:
             zn = 1
         z = abs(z)
         if self.moving:
-            if z < safe_zona / 4:
+            if z < safe_zona / 2:
                 self.moving = False
                 return 0
-            elif safe_zona/4 <= z <= safe_zona:
+            elif safe_zona/2 <= z <= safe_zona:
                 delta = tr_len - safe_zona
-                speed = (z - safe_zona/4) * max_speed / (delta)
-                if speed < 5:
-                    safe_zona = 0
+                speed = (z - safe_zona/2) * max_speed / (delta)
+                if 0<speed <40:
+                    speed = 40
 
                 # print("work zona")
                 return zn * min(max_speed, speed)
@@ -225,9 +225,9 @@ class TreadmillControl(QMainWindow):
 
                 delta = tr_len - safe_zona
                 if z * drag_coefficient <= max_speed:
-                    speed = (z - safe_zona/4) * max_speed / (delta)
-                    if speed < 5:
-                        safe_zona = 0
+                    speed = (z - safe_zona/2) * max_speed / (delta)
+
+
 
                     # print("work zona")
                     return zn * min(max_speed, speed)
@@ -279,8 +279,8 @@ class TreadmillControl(QMainWindow):
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
                 speed = (z-safe_zona)*max_speed/(delta)
-                if speed<10:
-                    speed = 10
+                if speed<25:
+                    speed = 25
 
                 #print("work zona")
                 return  zn*min(max_speed, speed)
@@ -309,19 +309,25 @@ class TreadmillControl(QMainWindow):
             if self.current_speed > 0:
                 self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                 while self.current_speed > 0:
-                    self.current_speed -= 1
-                    self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
-                    answer = self.get_arduino_speed()
-                    print(answer)
+                    if self.arduino:
+                        self.current_speed -= 1
+                        self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+                        answer = self.get_arduino_speed()
+                        print(answer)
+                    else:
+                        break
 
             else:
                 self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                 while self.current_speed < 0:
-                    self.current_speed += 1
-                    print("extreme", self.current_speed)
-                    self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
-                    answer = self.get_arduino_speed()
-                    print(answer)
+                    if self.arduino:
+                        self.current_speed += 1
+                        print("extreme", self.current_speed)
+                        self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
+                        answer = self.get_arduino_speed()
+                        print(answer)
+                    else:
+                        break
 
             self.last_speed = 0
             # self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
@@ -379,6 +385,9 @@ class TreadmillControl(QMainWindow):
                                 continue
 
                             # print("send_norm", self.current_speed)
+                            #if self.current_speed == 0 and self.last_speed == 0:
+                            #    pass
+                            #else:
                             self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
                             print("ARDUINO", self.arduino.readline())
                             s = bytes(str(int(self.current_speed)), 'utf-8')
@@ -405,7 +414,12 @@ class TreadmillControl(QMainWindow):
         except Exception as e:
             print("MAIN EXCEPTION", e, e.__class__)
             self.MainWhile = False
-            self.ExtremeStop()
+            self.last_speed = 0
+            self.current_speed = 0
+
+            self.StartButton.setEnabled(True)
+            if self.arduino:
+                self.ExtremeStop()
             return
         return
 
