@@ -5,13 +5,9 @@ from PyQt5.QtCore import *
 from PyQt5 import uic
 import triad_openvr
 import threading
-import asyncio
 import serial
-import socket
 import time
 import sys
-import csv
-import math
 import socket
 
 u = 0
