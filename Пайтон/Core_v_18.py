@@ -7,6 +7,7 @@ import triad_openvr
 import threading
 import asyncio
 import serial
+import socket
 import time
 import sys
 import csv
@@ -15,7 +16,7 @@ import socket
 
 u = 0
 SERIAL = None
-UDP_IP = "192.168.137.143"
+UDP_IP = str(socket.gethostbyname(socket.gethostname()))
 drag_coefficient = 255
 max_speed = 255
 UDP_PORT_Rec = 3040
@@ -73,7 +74,7 @@ class TreadmillControl(QMainWindow):
         self.UP_Button.clicked.connect(self.update_ip)
         self.Calibration_button.clicked.connect(self.calibration)
         self.StopButton.clicked.connect(self.stop)
-        self.IP.setText("192.168.0.122")
+        self.IP.setText(str(socket.gethostbyname(socket.gethostname())))
         #   -- Max Speed bar
         self.MaxSpeedSlider.valueChanged.connect(self.speed_changed_slider)
         self.MaxSpeedBox.valueChanged.connect(self.speed_changed_box)
