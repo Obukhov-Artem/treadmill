@@ -23,6 +23,8 @@ class Treadmill():
         self.treadmill_length = 70
         self.max_speed = 255
         self.human_pos = None
+        self.ard_trackers = 'LHR-9D5EB008'
+        self.arduino = None
 
     def start_treadmill(self):
 
@@ -41,14 +43,12 @@ class Treadmill():
             self.arduino = None
 
         self.ard_speed = 115200
-        self.ard_trackers = 'LHR-9D5EB008'
-        self.arduino = None
         if self.arduino:
             try:
                 self.ard_connect()
             except:
                 pass
-
+        print(self.arduino,self.COM_port)
         # Калибровка датчиков
         self.calibration()
         self.start()
@@ -115,12 +115,24 @@ class Treadmill():
             print("EXIT")
 
     def start(self):
+        time.sleep(0.2)
 
         self.calibration_zone = True
         if not self.arduino:
             print(self.arduino)
             print("Not connection with arduino")
         else:
+            n =0
+            while n < 15:
+                self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+                time.sleep(0.1)
+                n += 1
+                answer = self.arduino.readline()
+                print(answer)
+                a1 = "Speed".encode() in answer
+                print(a1)
+                if a1:
+                    break
 
             print("Платформа запущена.")
             self.MainWhile = True
@@ -245,54 +257,56 @@ class Treadmill():
         self.last_speed = 0
         z = 0
         self.current_speed = 0
-        try:
-            v = triad_openvr.triad_openvr()
+        #try:
+        v = triad_openvr.triad_openvr()
 
-            current_serial, device = self.ard_trackers
-            z_last = 0
-            flag_error = False
+        current_serial, device = self.ard_trackers
+        z_last = 0
+        flag_error = False
 
-            while self.MainWhile:
-                try:
-                    position_device = v.devices[device].sample(1, 500)
-                    if position_device:
-                        z = position_device.get_position_z()[0]
-                        self.z = z
-                        if z == 0.0 and not flag_error:
-                            z = z_last
-                            flag_error = True
+        while self.MainWhile and self.arduino:
+               # try:
+                position_device = v.devices[device].sample(1, 500)
+                if position_device:
+                    z = position_device.get_position_z()[0]
+                    self.z = z
+                    if z == 0.0 and not flag_error:
+                        z = z_last
+                        flag_error = True
 
-                        elif z == 0.0 and flag_error:
-                            self.last_speed = 0
-                            self.ExtremeStop()
-                            print("Stop")
+                    elif z == 0.0 and flag_error:
+                        self.last_speed = 0
+                        #self.ExtremeStop()
+                        print("Stop")
 
-                        else:
-                            z = z - self.human_0[2]
-                            self.current_speed = self.get_speed(z)
+                    else:
+                        z = z - self.human_0[2]
+                        self.current_speed = self.get_speed(z)
 
-                            if abs(self.current_speed - self.last_speed) > 150:
-                                print("ERROR",self.current_speed,self.last_speed, abs(self.current_speed - self.last_speed))
-                                self.current_speed = self.last_speed
-                                continue
-
+                        if abs(self.current_speed - self.last_speed) > 150:
+                            print("ERROR",self.current_speed,self.last_speed, abs(self.current_speed - self.last_speed))
+                            self.current_speed = self.last_speed
+                            continue
+                        if self.arduino:
                             self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
-                            print("ARDUINO", self.arduino.readline())
-                            s = bytes(str(int(self.current_speed)), 'utf-8')
-                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                             (UDP_IP, UDP_PORT_Unity))
-                            z_last = z
-                            self.last_speed = self.current_speed
-                except ZeroDivisionError as zero:
+                        print("ARDUINO", self.arduino.readline())
+                        s = bytes(str(int(self.current_speed)), 'utf-8')
+                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                         (UDP_IP, UDP_PORT_Unity))
+                        z_last = z
+                        self.last_speed = self.current_speed
+                        print(z, self.current_speed)
+                        print()
+                        """ except ZeroDivisionError as zero:
 
                     print("ZERO", zero)
-                    print(z, self.current_speed)
-                    continue
-            data = self.arduino.readline().decode().split()
+                    continue"""
+        data = self.arduino.readline().decode().split()
 
-            if 'treadmill' in data:
-                self.MainWhile = True
-
+        if 'treadmill' in data:
+            self.MainWhile = True
+        return
+        """
         except Exception as e:
             print("MAIN EXCEPTION", e, e.__class__)
             self.MainWhile = False
@@ -301,8 +315,8 @@ class Treadmill():
 
             if self.arduino:
                 self.ExtremeStop()
-            return
-        return
+            return"""
+
 
 
     def stop(self):
@@ -338,27 +352,21 @@ class Treadmill():
 
             except Exception as e:
                 pass
-        n = 0
-        while not self.arduino and n< 200:
-            time.sleep(0.1)
+        while not self.arduino:
             for com, arduino in __COMlist:
-                n +=1
-                answer = arduino.readline()
-                print(answer)
-                arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-                time.sleep(0.1)
-                answer = arduino.readline()
-                print(answer)
-                a1 = "Speed".encode() in answer
-                if a1:
-                    self.arduino = arduino
-                    self.COM_port = com
-                    break
-
-        print("**************************")
-        print(self.arduino, self.COM_port)
-        print(arduino.readline())
-        print("**************************")
+                n = 0
+                while n<15:
+                    n +=1
+                    arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
+                    time.sleep(0.1)
+                    answer = arduino.readline()
+                    print(answer)
+                    a1 = "Speed".encode() in answer
+                    print(com,a1)
+                    if a1:
+                        self.arduino = arduino
+                        self.COM_port = com
+                        return
 
 
 
@@ -464,8 +472,7 @@ def stop():
 def speed():
     try:
         data = TR.get_data()
-        print(data)
-        return jsonify({'data': {data}})
+        return jsonify(data)
     except Exception:
         return jsonify({'data': 'ERROR'})
 
