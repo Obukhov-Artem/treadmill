@@ -336,6 +336,7 @@ class TreadmillControl(QMainWindow):
             self.console_output("Платформа остановлена", color="#f89000")
         except Exception as e:
             print("EXTREME", e, e.__class__)
+            print(self.arduino,self.ArdWhile)
 
     def update_ip(self):
         global UDP_IP
@@ -410,6 +411,7 @@ class TreadmillControl(QMainWindow):
 
         except Exception as e:
             print("MAIN EXCEPTION", e, e.__class__)
+            print(self.arduino,self.ArdWhile)
             self.MainWhile = False
             self.last_speed = 0
             self.current_speed = 0

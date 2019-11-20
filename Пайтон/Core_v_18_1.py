@@ -203,7 +203,7 @@ class TreadmillControl(QMainWindow):
     def get_speed_new(self, z):
         max_speed = self.max_speed
         tr_len = self.treadmill_length * (10 ** -2)
-        self.safe_zona = 0.25
+        # self.safe_zona = 0.25
         if z < 0:
             zn = -1
         else:
@@ -266,7 +266,7 @@ class TreadmillControl(QMainWindow):
     def get_speed(self, z):
         max_speed = self.max_speed
         tr_len = self.treadmill_length * (10**-2)
-        self.safe_zona = 0.15
+        # self.safe_zona = 0.15
         if z<0:
             zn = -1
         else:

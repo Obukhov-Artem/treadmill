@@ -59,7 +59,7 @@
      </rect>
     </property>
     <property name="title">
-     <string>Макс. скорость</string>
+     <string>Cкорость</string>
     </property>
     <widget class="QSpinBox" name="MaxSpeedBox">
      <property name="geometry">
@@ -74,7 +74,7 @@
       <cursorShape>ArrowCursor</cursorShape>
      </property>
      <property name="maximum">
-      <number>255</number>
+      <number>100</number>
      </property>
     </widget>
     <widget class="QToolButton" name="SpeedLock">
@@ -120,16 +120,16 @@
       <number>0</number>
      </property>
      <property name="maximum">
-      <number>255</number>
+      <number>100</number>
      </property>
      <property name="singleStep">
-      <number>1</number>
+      <number>10</number>
      </property>
      <property name="pageStep">
       <number>10</number>
      </property>
      <property name="value">
-      <number>70</number>
+      <number>0</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

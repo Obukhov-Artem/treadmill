@@ -488,7 +488,7 @@ def set_user_param():
     for i in user_param:
         if i == 'browser':
             a = request.json['data'][i]
-            if a.lower() in 'safari  firefox  chrome  opera, microsoft explorer':#нужен словарь браузеров на какой-то стороне
+            if a.lower() in 'safari  firefox  chrome  opera, microsoft explorer': # нужен словарь браузеров на какой-то стороне
                 user_data.append(1)
             else:
                 user_data.append(6)
@@ -503,4 +503,4 @@ def set_user_param():
 
 
 if __name__ == '__main__':
-    app.run(debug=True,port=8001)
+    app.run(debug=True, port=8001)
