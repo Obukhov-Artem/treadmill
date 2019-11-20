@@ -156,17 +156,21 @@ class TreadmillControl(QMainWindow):
             self.console_output("Соединение с Ардуино не установлено.", color="#f80000")
             print(self.arduino)
             print("Not connection with arduino")
+        elif len(self.pos_devices_array) == 0:
+
+            self.console_output("Трекер не найден.", color="#f80000")
+            print(self.pos_devices_array)
         else:
             print(self.arduino)
 
             self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-            time.sleep(0.1)
+            time.sleep(0.05)
             answer = self.arduino.readline()
             print(answer)
             while True:
 
                 self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
-                time.sleep(0.1)
+                time.sleep(0.05)
                 answer = self.arduino.readline()
                 print(answer)
                 a1 = "Speed".encode() in answer
@@ -216,7 +220,6 @@ class TreadmillControl(QMainWindow):
                 if 0<speed <40:
                     speed = 40
 
-                # print("work zona")
                 return zn * min(max_speed, speed)
             elif safe_zona <= z <= tr_len:
 
@@ -309,6 +312,8 @@ class TreadmillControl(QMainWindow):
                     if self.arduino:
                         self.current_speed -= 1
                         self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                         (UDP_IP, UDP_PORT_Unity))
                         answer = self.get_arduino_speed()
                         print(answer)
                     else:
@@ -321,6 +326,8 @@ class TreadmillControl(QMainWindow):
                         self.current_speed += 1
                         print("extreme", self.current_speed)
                         self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
+                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                         (UDP_IP, UDP_PORT_Unity))
                         answer = self.get_arduino_speed()
                         print(answer)
                     else:
@@ -362,7 +369,7 @@ class TreadmillControl(QMainWindow):
                 try:
                     # or self.current_speed != 0
                     position_device = v.devices[device].sample(1, 500)
-                    if position_device:
+                    if position_device and self.arduino:
                         z = position_device.get_position_z()[0]
                         if z == 0.0 and not flag_error:
                             z = z_last
@@ -382,10 +389,6 @@ class TreadmillControl(QMainWindow):
                                 self.current_speed = self.last_speed
                                 continue
 
-                            # print("send_norm", self.current_speed)
-                            #if self.current_speed == 0 and self.last_speed == 0:
-                            #    pass
-                            #else:
                             self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
                             print("ARDUINO", self.arduino.readline())
                             s = bytes(str(int(self.current_speed)), 'utf-8')
@@ -399,7 +402,8 @@ class TreadmillControl(QMainWindow):
                     print("ZERO", zero)
                     print(z, self.current_speed)
                     continue
-            data = self.arduino.readline().decode().split()
+            if self.arduino:
+                data = self.arduino.readline().decode().split()
 
             if 'treadmill' in data:
                 self.MainWhile = True
