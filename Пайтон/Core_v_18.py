@@ -312,6 +312,7 @@ class TreadmillControl(QMainWindow):
         self.MainWhile = False
 
         if self.current_speed > 0:
+            time.sleep(0.1)
             self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
             time.sleep(0.05)
             answer = self.arduino.readline().decode()
@@ -329,6 +330,7 @@ class TreadmillControl(QMainWindow):
                     break
 
         else:
+            time.sleep(0.1)
             self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
             time.sleep(0.05)
             answer = self.arduino.readline().decode()
