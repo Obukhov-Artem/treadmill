@@ -565,10 +565,10 @@ class TreadmillControl(QMainWindow):
 
     def speed_lock(self):
         _translate = QCoreApplication.translate
-        self.SpeedBox.setEnabled(not self.SpeedBox.isEnabled())
-        self.SpeedSlider.setEnabled(not self.SpeedSlider.isEnabled())
+        self.MaxSpeedBox.setEnabled(not self.MaxSpeedBox.isEnabled())
+        self.MaxSpeedSlider.setEnabled(not self.MaxSpeedSlider.isEnabled())
 
-        if self.SpeedSlider.isEnabled():
+        if self.MaxSpeedSlider.isEnabled():
             self.SpeedLock.setText(_translate("Form", "🔓"))
         else:
             self.SpeedLock.setText(_translate("Form", "🔒"))
