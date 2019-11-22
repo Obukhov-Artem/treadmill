@@ -29,6 +29,8 @@ except Exception as e:
     UDP_IP = "192.168.137.143"
     print('File not found')
 '''
+
+
 class TreadmillControl(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__()
@@ -111,7 +113,7 @@ class TreadmillControl(QMainWindow):
                     else:
 
                         self.pos_devices_array.append(
-                            ( v.devices[device].get_serial(),
+                            (v.devices[device].get_serial(),
                              v.device_index_map[v.devices[device].index]))
                         print(v.devices[device].get_serial())
                         if SERIAL is None:
@@ -121,7 +123,8 @@ class TreadmillControl(QMainWindow):
                             self.human_pos = (v.devices[device].get_serial(),
                                               v.device_index_map[v.devices[device].index])
                         else:
-                            if v.devices[device].get_serial() == SERIAL or v.devices[device].get_serial() == SERIAL.encode():
+                            if v.devices[device].get_serial() == SERIAL or v.devices[
+                                device].get_serial() == SERIAL.encode():
                                 print("OK")
                                 self.human_0 = [position_device.get_position_x()[0],
                                                 position_device.get_position_y()[0],
@@ -129,18 +132,17 @@ class TreadmillControl(QMainWindow):
                                 self.human_pos = (v.devices[device].get_serial(),
                                                   v.device_index_map[v.devices[device].index])
 
-
         p_a = sorted(self.pos_devices_array, key=lambda x: x[1])
         print(p_a)
-        if len(p_a)>0:
+        if len(p_a) > 0:
             print("New postion")
-            pos_str = "x= "+str(self.human_0[0])[:3]+" y= "+str(self.human_0[1])[:3]+" z= "+str(self.human_0[2])[:5]+""
+            pos_str = "x= " + str(self.human_0[0])[:3] + " y= " + str(self.human_0[1])[:3] + " z= " + str(
+                self.human_0[2])[:5] + ""
             print(pos_str)
-            self.console_output("Калибровка "+pos_str, color="#000000")
+            self.console_output("Калибровка " + pos_str, color="#000000")
             self.slovar_trackers = {"Человек": self.human_pos}
             self.ard_trackers = self.human_pos
             self.Ard_trackers.setText(self.ard_trackers[0])
-
 
     def closeEvent(self, event):
         print("EXITING")
@@ -167,8 +169,9 @@ class TreadmillControl(QMainWindow):
             time.sleep(0.05)
             answer = self.arduino.readline()
             print(answer)
-            while True:
-
+            attempt = 0
+            while attempt < 30:
+                attempt += 1
                 self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
                 time.sleep(0.05)
                 answer = self.arduino.readline()
@@ -177,18 +180,24 @@ class TreadmillControl(QMainWindow):
                 if a1:
                     break
 
-            print("**************************")
-            print(self.arduino.readline())
-            print("**************************")
+            if attempt >= 30:
+                self.console_output("Проблема с подключение к СОМ. Переподключитесь заново.", color="#f80000")
+                self.Connect.setEnabled(True)
+                self.Disconnect.setEnabled(False)
+                self.arduino = None
+            else:
+                print("**************************")
+                print(self.arduino.readline())
+                print("**************************")
 
-            self.console_output("Платформа запущена.", color="#0000f8")
-            self.MainWhile = True
-            main_while_thread = threading.Thread(target=self.main_while)
-            main_while_thread.start()
-            self.StartButton.setEnabled(False)
-            self.ArduinoBar.setEnabled(False)
-            self.Calibration_button.setEnabled(False)
-            self.StopButton.setEnabled(True)
+                self.console_output("Платформа запущена.", color="#0000f8")
+                self.MainWhile = True
+                main_while_thread = threading.Thread(target=self.main_while)
+                main_while_thread.start()
+                self.StartButton.setEnabled(False)
+                self.ArduinoBar.setEnabled(False)
+                self.Calibration_button.setEnabled(False)
+                self.StopButton.setEnabled(True)
 
     def get_r(self, data):
         current = data[-1]
@@ -199,7 +208,6 @@ class TreadmillControl(QMainWindow):
             return -1
         else:
             return 1
-
 
     def get_speed_new(self, z):
         max_speed = self.max_speed
@@ -214,10 +222,10 @@ class TreadmillControl(QMainWindow):
             if z < safe_zona / 2:
                 self.moving = False
                 return 0
-            elif safe_zona/2 <= z <= safe_zona:
+            elif safe_zona / 2 <= z <= safe_zona:
                 delta = tr_len - safe_zona
-                speed = (z - safe_zona/2) * max_speed / (delta)
-                if 0<speed <40:
+                speed = (z - safe_zona / 2) * max_speed / (delta)
+                if 0 < speed < 40:
                     speed = 40
 
                 return zn * min(max_speed, speed)
@@ -225,9 +233,7 @@ class TreadmillControl(QMainWindow):
 
                 delta = tr_len - safe_zona
                 if z * drag_coefficient <= max_speed:
-                    speed = (z - safe_zona/2) * max_speed / (delta)
-
-
+                    speed = (z - safe_zona / 2) * max_speed / (delta)
 
                     # print("work zona")
                     return zn * min(max_speed, speed)
@@ -262,34 +268,33 @@ class TreadmillControl(QMainWindow):
                 print("error")
                 return 0
 
-
     def get_speed(self, z):
         max_speed = self.max_speed
-        tr_len = self.treadmill_length * (10**-2)
+        tr_len = self.treadmill_length * (10 ** -2)
         safe_zona = 0.15
-        if z<0:
+        if z < 0:
             zn = -1
         else:
             zn = 1
         z = abs(z)
         if z < safe_zona:
-            #print("safe zona")
+            # print("safe zona")
             return 0
         elif safe_zona <= z <= tr_len:
             delta = tr_len - safe_zona
             if z * drag_coefficient <= max_speed:
-                speed = (z-safe_zona)*max_speed/(delta)
-                if speed<25:
+                speed = (z - safe_zona) * max_speed / (delta)
+                if speed < 25:
                     speed = 25
 
-                #print("work zona")
-                return  zn*min(max_speed, speed)
+                # print("work zona")
+                return zn * min(max_speed, speed)
             else:
 
-                #print("far zona speed")
-                return zn*max_speed
-        elif z> tr_len:
-            #print("far zona")
+                # print("far zona speed")
+                return zn * max_speed
+        elif z > tr_len:
+            # print("far zona")
             return zn * max_speed
         else:
             print("error")
@@ -300,57 +305,65 @@ class TreadmillControl(QMainWindow):
         return answer
 
     def ExtremeStop(self):  # problem
-        try:
+        #try:
 
-            self.console_output("Остановка платформы.", color="#f80000")
-            print("*" * 10, "Extreme stop", self.current_speed)
-            self.MainWhile = False
+        self.console_output("Остановка платформы.", color="#f80000")
+        print("*" * 10, "Extreme stop", self.current_speed)
+        self.MainWhile = False
 
-            if self.current_speed > 0:
-                self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
-                while self.current_speed > 0:
-                    if self.arduino:
-                        self.current_speed -= 1
-                        self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                         (UDP_IP, UDP_PORT_Unity))
-                        answer = self.get_arduino_speed()
-                        print(answer)
-                    else:
-                        break
+        if self.current_speed > 0:
+            self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+            time.sleep(0.05)
+            answer = self.arduino.readline().decode()
+            print(answer)
+            while self.current_speed > 0 and "Wait" not in answer:
+                if self.arduino:
+                    self.current_speed -= 1
+                    time.sleep(0.05)
+                    self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
+                    self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                     (UDP_IP, UDP_PORT_Unity))
+                    answer = self.get_arduino_speed()
+                    print(answer)
+                else:
+                    break
 
-            else:
-                self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
-                while self.current_speed < 0:
-                    if self.arduino:
-                        self.current_speed += 1
-                        print("extreme", self.current_speed)
-                        self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                         (UDP_IP, UDP_PORT_Unity))
-                        answer = self.get_arduino_speed()
-                        print(answer)
-                    else:
-                        break
+        else:
+            self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
+            time.sleep(0.05)
+            answer = self.arduino.readline().decode()
+            print(answer)
+            while self.current_speed < 0 and "Wait" not in answer:
+                if self.arduino:
+                    self.current_speed += 1
+                    time.sleep(0.05)
+                    #print("extreme", self.current_speed)
+                    self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
+                    self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                     (UDP_IP, UDP_PORT_Unity))
+                    answer = self.get_arduino_speed()
+                    print(answer)
+                else:
+                    break
 
-            self.last_speed = 0
-            # self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
-            self.current_speed = 0
+        self.last_speed = 0
+        # self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
+        self.current_speed = 0
 
-            self.StartButton.setEnabled(True)
-            print("STOP complete")
+        self.StartButton.setEnabled(True)
+        print("STOP complete")
+        '''' except Exception as e:
+                   print("EXTREME", e, e.__class__)
+                   print(self.arduino, self.ArdWhile)'''
+        self.console_output("Платформа остановлена", color="#f89000")
 
-            self.console_output("Платформа остановлена", color="#f89000")
-        except Exception as e:
-            print("EXTREME", e, e.__class__)
-            print(self.arduino,self.ArdWhile)
 
     def update_ip(self):
         global UDP_IP
         UDP_IP = self.IP.toPlainText()
-        print("New IP",UDP_IP)
+        print("New IP", UDP_IP)
 
-        self.console_output("Установлен IP"+str(UDP_IP), color="#0000f8")
+        self.console_output("Установлен IP" + str(UDP_IP), color="#0000f8")
 
     def main_while(self):
         self.moving = False
@@ -358,74 +371,74 @@ class TreadmillControl(QMainWindow):
         self.last_speed = 0
         z = 0
         self.current_speed = 0
-        try:
-            v = triad_openvr.triad_openvr()
+       # try:
+        v = triad_openvr.triad_openvr()
 
-            current_serial, device = self.ard_trackers
-            z_last = 0
-            flag_error = False
+        current_serial, device = self.ard_trackers
+        z_last = 0
+        flag_error = False
 
-            while self.MainWhile:
-                try:
-                    # or self.current_speed != 0
-                    position_device = v.devices[device].sample(1, 500)
-                    if position_device and self.arduino:
-                        z = position_device.get_position_z()[0]
-                        if z == 0.0 and not flag_error:
-                            z = z_last
-                            flag_error = True
+        while self.MainWhile:
+            # try:
+            # or self.current_speed != 0
+            position_device = v.devices[device].sample(1, 500)
+            if position_device and self.arduino:
+                z = position_device.get_position_z()[0]
+                if z == 0.0 and not flag_error:
+                    z = z_last
+                    flag_error = True
 
-                        elif z == 0.0 and flag_error:
-                            self.last_speed = 0
-                            self.ExtremeStop()
-                            print("Stop")
+                elif z == 0.0 and flag_error:
+                    self.last_speed = 0
+                    self.ExtremeStop()
+                    print("Stop")
 
-                        else:
-                            z = z - self.human_0[2]
-                            self.current_speed = self.get_speed_new(z)
+                else:
+                    z = z - self.human_0[2]
+                    self.current_speed = self.get_speed_new(z)
 
-                            if abs(self.current_speed - self.last_speed) > 150:
-                                print("ERROR",self.current_speed,self.last_speed, abs(self.current_speed - self.last_speed))
-                                self.current_speed = self.last_speed
-                                continue
+                    if abs(self.current_speed - self.last_speed) > 150:
+                        print("ERROR", self.current_speed, self.last_speed,
+                              abs(self.current_speed - self.last_speed))
+                        self.current_speed = self.last_speed
+                        continue
 
-                            self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
-                            print("ARDUINO", self.arduino.readline())
-                            s = bytes(str(int(self.current_speed)), 'utf-8')
-                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                             (UDP_IP, UDP_PORT_Unity))
-                            z_last = z
-                            self.last_speed = self.current_speed
-                    self.Display.display(int(self.current_speed))
-                except ZeroDivisionError as zero:
+                    self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                    print("ARDUINO", self.arduino.readline())
+                    s = bytes(str(int(self.current_speed)), 'utf-8')
+                    self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                     (UDP_IP, UDP_PORT_Unity))
+                    z_last = z
+                    self.last_speed = self.current_speed
+            self.Display.display(int(self.current_speed))
+            '''except ZeroDivisionError as zero:
 
-                    print("ZERO", zero)
-                    print(z, self.current_speed)
-                    continue
-            if self.arduino:
-                data = self.arduino.readline().decode().split()
+                print("ZERO", zero)
+                print(z, self.current_speed)
+                continue'''
+        if self.arduino:
+            data = self.arduino.readline().decode().split()
 
-            if 'treadmill' in data:
-                self.MainWhile = True
+        if 'treadmill' in data:
+            self.MainWhile = True
 
-            self.MaxSpeedBar.setEnabled(True)
-            self.LengthBar.setEnabled(True)
-            self.ArduinoBar.setEnabled(True)
-            self.StartButton.setEnabled(True)
+        self.MaxSpeedBar.setEnabled(True)
+        self.LengthBar.setEnabled(True)
+        self.ArduinoBar.setEnabled(True)
+        self.StartButton.setEnabled(True)
 
-        except Exception as e:
+        '''except Exception as e:
             print("MAIN EXCEPTION", e, e.__class__)
-            print(self.arduino,self.ArdWhile)
+            print(self.arduino, self.ArdWhile)
             self.MainWhile = False
             self.last_speed = 0
             self.current_speed = 0
 
             self.StartButton.setEnabled(True)
             if self.arduino:
-                self.ExtremeStop()
-            return
+                self.ExtremeStop()'''
+            #return
         return
-
 
     def stop(self):
         if self.arduino:
@@ -436,21 +449,21 @@ class TreadmillControl(QMainWindow):
         self.Calibration_button.setEnabled(True)
 
     def ard_connect(self):
-        try:
-            self.arduino = serial.Serial(self.COM_port, self.ard_speed)
-            self.arduino.write(bytes('0.', 'utf-8'))
-            self.Status.setText('''<p align="center"><span style="color:#2f8700;">Подключено</span></p>''')
-            self.Connect.setEnabled(False)
-            self.Disconnect.setEnabled(True)
-            self.console_output("Соединение с Ардуино установлено.", color="#2f8700")
+        #try:
+        self.arduino = serial.Serial(self.COM_port, self.ard_speed, timeout=0)
+        self.arduino.write(bytes('0.', 'utf-8'))
+        self.Status.setText('''<p align="center"><span style="color:#2f8700;">Подключено</span></p>''')
+        self.Connect.setEnabled(False)
+        self.Disconnect.setEnabled(True)
+        self.console_output("Соединение с Ардуино установлено.", color="#2f8700")
 
-        except Exception as e:
+        '''except Exception as e:
             if self.COM_port:
                 self.console_output("Соединение с Ардуино не установлено. Проверьте COM-порт или скорость.",
                                     color="#f80000")
             else:
                 self.console_output("COM-порт не выбран.", color="#f80000")
-            print(e)
+            print(e)'''
 
     def Search(self, __baudrate=115200):
         __COMlist = []
@@ -522,7 +535,6 @@ class TreadmillControl(QMainWindow):
                     SERIAL = tracker
                     self.console_output("Выбран трекер " + str(tracker), color="#0000f8")
 
-
     def ard_change_speed(self):
         speeds = ['1200', '2400', '4800', '9600', '19200', '38400', '57600', '115200']
         x = speeds.index(str(self.ard_speed))
@@ -583,6 +595,20 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         return
 
+
+def log_uncaught_exceptions(ex_cls, ex, tb):
+    text = '{}: {}:\n'.format(ex_cls.__name__, ex)
+    import traceback
+    text += ''.join(traceback.format_tb(tb))
+
+    print(text)
+    print(None, 'Error', text)
+    quit()
+
+
+import sys
+
+sys.excepthook = log_uncaught_exceptions
 
 app = QApplication(sys.argv)
 ex = TreadmillControl()
