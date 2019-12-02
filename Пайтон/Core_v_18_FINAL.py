@@ -16,19 +16,8 @@ UDP_IP = str(socket.gethostbyname(socket.gethostname()))
 drag_coefficient = 255
 max_speed = 255
 UDP_PORT_Rec = 3040
+UDP_PORT_Angle = 3040
 UDP_PORT_Unity = 3031
-
-'''try:
-    f = open("port.txt",'r')
-    SERIAL = f.read()
-    f1 = open('IP.txt', 'r')
-    UDP_IP = f1.read()
-
-except Exception as e:
-    SERIAL = 'LHR-9D5EB008'
-    UDP_IP = "192.168.137.143"
-    print('File not found')
-'''
 
 
 class TreadmillControl(QMainWindow):
@@ -40,12 +29,16 @@ class TreadmillControl(QMainWindow):
         self.treadmill_length = 70
         self.max_speed = 255
         self.human_pos = None
+        self.angle = 0
 
         self.MainWhile = False
         self.ArdWhile = False
 
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.conn.bind(('', UDP_PORT_Rec))
+
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.server.bind((UDP_IP, UDP_PORT_Angle))
 
         # Предустановка Arduino
         try:
@@ -91,58 +84,62 @@ class TreadmillControl(QMainWindow):
         self.Ard_trackers_button.clicked.connect(self.ard_change_trackers)
         self.ArdSpeedSelect.clicked.connect(self.ard_change_speed)
 
+
     def calibration(self):
         self.z_napr = 1
-        v = triad_openvr.triad_openvr()
-        self.human_pos = None
-        hmd_pos = None
-        self.human_0 = None
-        self.pos_devices_array = []
-        n = 1
-        while n > 0 and self.human_pos is None:
-            n -= 1
-            for device in v.devices:
-                position_device = v.devices[device].sample(1, 500)
+        try:
+            v = triad_openvr.triad_openvr()
+            self.human_pos = None
+            hmd_pos = None
+            self.human_0 = None
+            self.pos_devices_array = []
+            n = 1
+            while n > 0 and self.human_pos is None:
+                n -= 1
+                for device in v.devices:
+                    position_device = v.devices[device].sample(1, 500)
 
-                if position_device:
+                    if position_device:
 
-                    if v.devices[device].device_class == 'HMD':
-                        hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0],
-                                   position_device.get_position_z()[0],
-                                   v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
-                    else:
-
-                        self.pos_devices_array.append(
-                            (v.devices[device].get_serial(),
-                             v.device_index_map[v.devices[device].index]))
-                        print(v.devices[device].get_serial())
-                        if SERIAL is None:
-                            print("OK")
-                            self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
-                                            position_device.get_position_z()[0]]
-                            self.human_pos = (v.devices[device].get_serial(),
-                                              v.device_index_map[v.devices[device].index])
+                        if v.devices[device].device_class == 'HMD':
+                            hmd_pos = (position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                       position_device.get_position_z()[0],
+                                       v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
                         else:
-                            if v.devices[device].get_serial() == SERIAL or v.devices[
-                                device].get_serial() == SERIAL.encode():
+
+                            self.pos_devices_array.append(
+                                (v.devices[device].get_serial(),
+                                 v.device_index_map[v.devices[device].index]))
+                            print(v.devices[device].get_serial())
+                            if SERIAL is None:
                                 print("OK")
-                                self.human_0 = [position_device.get_position_x()[0],
-                                                position_device.get_position_y()[0],
+                                self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
                                                 position_device.get_position_z()[0]]
                                 self.human_pos = (v.devices[device].get_serial(),
                                                   v.device_index_map[v.devices[device].index])
+                            else:
+                                if v.devices[device].get_serial() == SERIAL or v.devices[
+                                    device].get_serial() == SERIAL.encode():
+                                    print("OK")
+                                    self.human_0 = [position_device.get_position_x()[0],
+                                                    position_device.get_position_y()[0],
+                                                    position_device.get_position_z()[0]]
+                                    self.human_pos = (v.devices[device].get_serial(),
+                                                      v.device_index_map[v.devices[device].index])
 
-        p_a = sorted(self.pos_devices_array, key=lambda x: x[1])
-        print(p_a)
-        if len(p_a) > 0:
-            print("New postion")
-            pos_str = "x= " + str(self.human_0[0])[:3] + " y= " + str(self.human_0[1])[:3] + " z= " + str(
-                self.human_0[2])[:5] + ""
-            print(pos_str)
-            self.console_output("Калибровка " + pos_str, color="#000000")
-            self.slovar_trackers = {"Человек": self.human_pos}
-            self.ard_trackers = self.human_pos
-            self.Ard_trackers.setText(self.ard_trackers[0])
+            p_a = sorted(self.pos_devices_array, key=lambda x: x[1])
+            print(p_a)
+            if len(p_a) > 0:
+                print("New postion")
+                pos_str = "x= " + str(self.human_0[0])[:3] + " y= " + str(self.human_0[1])[:3] + " z= " + str(
+                    self.human_0[2])[:5] + ""
+                print(pos_str)
+                self.console_output("Калибровка " + pos_str, color="#000000")
+                self.slovar_trackers = {"Человек": self.human_pos}
+                self.ard_trackers = self.human_pos
+                self.Ard_trackers.setText(self.ard_trackers[0])
+        except Exception as e:
+            self.console_output("VR не подключен ", color="#ff0000")
 
     def closeEvent(self, event):
         print("EXITING")
@@ -194,6 +191,10 @@ class TreadmillControl(QMainWindow):
                 self.MainWhile = True
                 main_while_thread = threading.Thread(target=self.main_while)
                 main_while_thread.start()
+                angle_while_thread = threading.Thread(target=self.angle_while)
+                angle_while_thread.start()
+
+
                 self.StartButton.setEnabled(False)
                 self.ArduinoBar.setEnabled(False)
                 self.Calibration_button.setEnabled(False)
@@ -442,6 +443,27 @@ class TreadmillControl(QMainWindow):
             #return
         return
 
+    def angle_while(self):
+        if self.AngleBox.isChecked():
+            print("Control angle")
+            while True:
+                self.server.settimeout(1)
+                try:
+                    d = self.server.recvfrom(1024)
+                except socket.timeout:
+                    print('Time is out. {0} seconds have passed'.format(1))
+                    break
+                received = d[0]
+                new_angle = int(received)
+                addr = d[1]
+                print('Received data: ', received)
+                if new_angle !=  self.angle:
+                    self.angle = new_angle
+                    self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                print('From: ', addr)
+            self.server.close()
+            return
+
     def stop(self):
         if self.arduino:
             self.ExtremeStop()
@@ -451,21 +473,21 @@ class TreadmillControl(QMainWindow):
         self.Calibration_button.setEnabled(True)
 
     def ard_connect(self):
-        #try:
-        self.arduino = serial.Serial(self.COM_port, self.ard_speed, timeout=0)
-        self.arduino.write(bytes('0.', 'utf-8'))
-        self.Status.setText('''<p align="center"><span style="color:#2f8700;">Подключено</span></p>''')
-        self.Connect.setEnabled(False)
-        self.Disconnect.setEnabled(True)
-        self.console_output("Соединение с Ардуино установлено.", color="#2f8700")
+        try:
+            self.arduino = serial.Serial(self.COM_port, self.ard_speed, timeout=0)
+            self.arduino.write(bytes('0.', 'utf-8'))
+            self.Status.setText('''<p align="center"><span style="color:#2f8700;">Подключено</span></p>''')
+            self.Connect.setEnabled(False)
+            self.Disconnect.setEnabled(True)
+            self.console_output("Соединение с Ардуино установлено.", color="#2f8700")
 
-        '''except Exception as e:
+        except Exception as e:
             if self.COM_port:
                 self.console_output("Соединение с Ардуино не установлено. Проверьте COM-порт или скорость.",
                                     color="#f80000")
             else:
                 self.console_output("COM-порт не выбран.", color="#f80000")
-            print(e)'''
+            print(e)
 
     def Search(self, __baudrate=115200):
         __COMlist = []
