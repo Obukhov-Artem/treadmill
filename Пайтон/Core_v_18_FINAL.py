@@ -88,9 +88,11 @@ class TreadmillControl(QMainWindow):
 
     def angle_1(self):
         self.angle = 1
+        print("COMMAND1   "+str(int(self.current_speed)) + ',  ' + str(int(self.angle)) + '.')
 
     def angle_2(self):
         self.angle = 2
+        print("COMMAND2   "+str(int(self.current_speed)) + ',  ' + str(int(self.angle)) + '.')
 
     def calibration(self):
         self.z_napr = 1
@@ -175,7 +177,7 @@ class TreadmillControl(QMainWindow):
             answer = self.arduino.readline()
             print(answer)
             attempt = 0
-            while attempt < 30:
+            while attempt < 50:
                 attempt += 1
                 self.arduino.write(bytes(str("Treadmill") + '.', 'utf-8'))
                 time.sleep(0.05)
@@ -185,7 +187,7 @@ class TreadmillControl(QMainWindow):
                 if a1:
                     break
 
-            if attempt >= 30:
+            if attempt >= 50:
                 self.console_output("Проблема с подключение к СОМ. Переподключитесь заново.", color="#f80000")
                 self.Connect.setEnabled(True)
                 self.Disconnect.setEnabled(False)
@@ -199,8 +201,8 @@ class TreadmillControl(QMainWindow):
                 self.MainWhile = True
                 main_while_thread = threading.Thread(target=self.main_while)
                 main_while_thread.start()
-                angle_while_thread = threading.Thread(target=self.angle_while)
-                angle_while_thread.start()
+                #angle_while_thread = threading.Thread(target=self.angle_while)
+                #angle_while_thread.start()
 
                 self.StartButton.setEnabled(False)
                 self.ArduinoBar.setEnabled(False)
@@ -376,8 +378,10 @@ class TreadmillControl(QMainWindow):
 
     def main_while(self):
         self.moving = False
+        status1, status2 = "",""
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
+        angle_message = 0
         z = 0
         self.current_speed = 0
         try:
@@ -411,12 +415,27 @@ class TreadmillControl(QMainWindow):
                                       abs(self.current_speed - self.last_speed))
                                 self.current_speed = self.last_speed
                                 continue
-
+                            print("COMMAND   "+str(int(self.current_speed)) + ',  ' + str(int(self.angle)) + '.')
                             self.arduino.write(
                                 bytes(str(int(self.current_speed)) + ',' + str(int(self.angle)) + '.', 'utf-8'))
+
+                            m = self.arduino.readline().decode()
+                            print(m)
+                            if "Speed=" in m:
+                                status1,status2  = m.split(",")
+
+
+                            self.Status_2.setText(
+                                '''<p align="center"><span style="color:#2f8700;">'''+status1+'''</span></p>''')
+
+
+                            self.Status_3.setText(
+                                '''<p align="center"><span style="color:#2f8700;">'''+status2+'''</span></p>''')
                             if self.angle != 0:
+                                angle_message +=1
+                            if angle_message >100:
+                                angle_message =0
                                 self.angle = 0
-                            print("ARDUINO", self.arduino.readline())
                             s = bytes(str(int(self.current_speed)), 'utf-8')
                             self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
                                              (UDP_IP, UDP_PORT_Unity))
