@@ -201,6 +201,9 @@ class TreadmillControl(QMainWindow):
                 self.MainWhile = True
                 main_while_thread = threading.Thread(target=self.main_while)
                 main_while_thread.start()
+
+                data_update = threading.Timer(1,get_data)
+                data_update.start()
                 #angle_while_thread = threading.Thread(target=self.angle_while)
                 #angle_while_thread.start()
 
@@ -399,6 +402,7 @@ class TreadmillControl(QMainWindow):
         self.ConsoleOutput.verticalScrollBar()
         self.last_speed = 0
         angle_message = 0
+        time.time()
         z = 0
         self.current_speed = 0
         try:
@@ -435,7 +439,11 @@ class TreadmillControl(QMainWindow):
                             print("COMMAND   "+str(int(self.current_speed)) + ',  ' + str(int(self.angle)) + '.')
                             self.arduino.write(
                                 bytes(str(int(self.current_speed)) + ',' + str(int(self.angle)) + '.', 'utf-8'))
-
+                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                                             (UDP_IP, UDP_PORT_Unity))
+                            z_last = z
+                            self.last_speed = self.current_speed
+                            """
                             m = self.arduino.readline().decode()
                             print(m)
                             if "Speed=" in m:
@@ -454,10 +462,8 @@ class TreadmillControl(QMainWindow):
                                 angle_message =0
                                 self.angle = 0
                             s = bytes(str(int(self.current_speed)), 'utf-8')
-                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
-                                             (UDP_IP, UDP_PORT_Unity))
-                            z_last = z
-                            self.last_speed = self.current_speed
+                           
+                            """
                     self.Display.display(int(self.current_speed))
                 except ZeroDivisionError as zero:
 
@@ -487,6 +493,31 @@ class TreadmillControl(QMainWindow):
                 self.ExtremeStop()
             # return
         return
+
+    def get_data(self):
+
+        status1, status2 = "", ""
+
+        try:
+            if self.arduino:
+                m = self.arduino.readline().decode()
+                print(m)
+                if "Speed=" in m:
+                    status1, status2 = m.split(",")
+
+                self.Status_2.setText(
+                    '''<p align="center"><span style="color:#2f8700;">''' + status1 + '''</span></p>''')
+
+                self.Status_3.setText(
+                    '''<p align="center"><span style="color:#2f8700;">''' + status2 + '''</span></p>''')
+
+                self.Display.display(int(self.current_speed))
+
+        except Exception as e:
+            print("EXCEPTION", e, e.__class__)
+
+        return
+
 
     """
     def angle_while(self):
