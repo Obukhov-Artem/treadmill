@@ -62,6 +62,8 @@ class TreadmillControl(QMainWindow):
 
         # Ui
         self.StartButton.clicked.connect(self.start)
+        self.Angle1.clicked.connect(self.angle_1)
+        self.Angle2.clicked.connect(self.angle_2)
         self.UP_Button.clicked.connect(self.update_ip)
         self.Calibration_button.clicked.connect(self.calibration)
         self.StopButton.clicked.connect(self.stop)
@@ -84,6 +86,11 @@ class TreadmillControl(QMainWindow):
         self.Ard_trackers_button.clicked.connect(self.ard_change_trackers)
         self.ArdSpeedSelect.clicked.connect(self.ard_change_speed)
 
+    def angle_1(self):
+        self.angle = 1
+
+    def angle_2(self):
+        self.angle = 2
 
     def calibration(self):
         self.z_napr = 1
@@ -113,7 +120,8 @@ class TreadmillControl(QMainWindow):
                             print(v.devices[device].get_serial())
                             if SERIAL is None:
                                 print("OK")
-                                self.human_0 = [position_device.get_position_x()[0], position_device.get_position_y()[0],
+                                self.human_0 = [position_device.get_position_x()[0],
+                                                position_device.get_position_y()[0],
                                                 position_device.get_position_z()[0]]
                                 self.human_pos = (v.devices[device].get_serial(),
                                                   v.device_index_map[v.devices[device].index])
@@ -193,7 +201,6 @@ class TreadmillControl(QMainWindow):
                 main_while_thread.start()
                 angle_while_thread = threading.Thread(target=self.angle_while)
                 angle_while_thread.start()
-
 
                 self.StartButton.setEnabled(False)
                 self.ArduinoBar.setEnabled(False)
@@ -307,7 +314,7 @@ class TreadmillControl(QMainWindow):
 
     def ExtremeStop(self):  # problem
         try:
-
+            self.arduino.write(bytes(str(int(self.current_speed)) + ',' + str(int(0)) + '.', 'utf-8'))
             self.console_output("Остановка платформы.", color="#f80000")
             print("*" * 10, "Extreme stop", self.current_speed)
             self.MainWhile = False
@@ -340,7 +347,7 @@ class TreadmillControl(QMainWindow):
                     if self.arduino:
                         self.current_speed += 1
                         time.sleep(0.05)
-                        #print("extreme", self.current_speed)
+                        # print("extreme", self.current_speed)
                         self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                         self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
                                          (UDP_IP, UDP_PORT_Unity))
@@ -356,10 +363,9 @@ class TreadmillControl(QMainWindow):
             self.StartButton.setEnabled(True)
             print("STOP complete")
         except Exception as e:
-                   print("EXTREME", e, e.__class__)
-                   print(self.arduino, self.ArdWhile)
+            print("EXTREME", e, e.__class__)
+            print(self.arduino, self.ArdWhile)
         self.console_output("Платформа остановлена", color="#f89000")
-
 
     def update_ip(self):
         global UDP_IP
@@ -406,7 +412,10 @@ class TreadmillControl(QMainWindow):
                                 self.current_speed = self.last_speed
                                 continue
 
-                            self.arduino.write(bytes(str(int(self.current_speed)) + '.', 'utf-8'))
+                            self.arduino.write(
+                                bytes(str(int(self.current_speed)) + ',' + str(int(self.angle)) + '.', 'utf-8'))
+                            if self.angle != 0:
+                                self.angle = 0
                             print("ARDUINO", self.arduino.readline())
                             s = bytes(str(int(self.current_speed)), 'utf-8')
                             self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
@@ -440,9 +449,10 @@ class TreadmillControl(QMainWindow):
             self.StartButton.setEnabled(True)
             if self.arduino:
                 self.ExtremeStop()
-            #return
+            # return
         return
 
+    """
     def angle_while(self):
         if self.AngleBox.isChecked():
             print("Control angle")
@@ -463,6 +473,7 @@ class TreadmillControl(QMainWindow):
                 print('From: ', addr)
             self.server.close()
             return
+    """
 
     def stop(self):
         if self.arduino:
