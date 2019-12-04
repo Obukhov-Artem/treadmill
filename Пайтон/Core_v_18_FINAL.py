@@ -334,8 +334,17 @@ class TreadmillControl(QMainWindow):
                         self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
                         self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
                                          (UDP_IP, UDP_PORT_Unity))
-                        answer = self.get_arduino_speed()
-                        print(answer)
+                        m = self.arduino.readline().decode()
+                        print(m)
+                        if "Speed=" in m:
+                            status1, status2 = m.split(",")
+
+                        self.Status_2.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status1 + '''</span></p>''')
+
+                        self.Status_3.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status2 + '''</span></p>''')
+
                     else:
                         break
 
@@ -353,8 +362,16 @@ class TreadmillControl(QMainWindow):
                         self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
                         self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
                                          (UDP_IP, UDP_PORT_Unity))
-                        answer = self.get_arduino_speed()
-                        print(answer)
+                        m = self.arduino.readline().decode()
+                        print(m)
+                        if "Speed=" in m:
+                            status1, status2 = m.split(",")
+
+                        self.Status_2.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status1 + '''</span></p>''')
+
+                        self.Status_3.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status2 + '''</span></p>''')
                     else:
                         break
 
@@ -433,7 +450,7 @@ class TreadmillControl(QMainWindow):
                                 '''<p align="center"><span style="color:#2f8700;">'''+status2+'''</span></p>''')
                             if self.angle != 0:
                                 angle_message +=1
-                            if angle_message >100:
+                            if angle_message >500:
                                 angle_message =0
                                 self.angle = 0
                             s = bytes(str(int(self.current_speed)), 'utf-8')
