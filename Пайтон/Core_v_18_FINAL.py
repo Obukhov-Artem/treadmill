@@ -145,6 +145,8 @@ class TreadmillControl(QMainWindow):
                 pos_str = "x= " + str(self.human_0[0])[:3] + " y= " + str(self.human_0[1])[:3] + " z= " + str(
                     self.human_0[2])[:5] + ""
                 print(pos_str)
+
+
                 self.console_output("Калибровка " + pos_str, color="#000000")
                 self.slovar_trackers = {"Человек": self.human_pos}
                 self.ard_trackers = self.human_pos
