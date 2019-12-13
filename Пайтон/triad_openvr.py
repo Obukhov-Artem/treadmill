@@ -28,6 +28,8 @@ def convert_to_euler(pose_mat):
 def convert_to_quaternion(pose_mat):
     # Per issue #2, adding a abs() so that sqrt only results in real numbers
     r_w = math.sqrt(abs(1 + pose_mat[0][0] + pose_mat[1][1] + pose_mat[2][2])) / 2
+    if r_w ==0 :
+        r_w = 1
     r_x = (pose_mat[2][1] - pose_mat[1][2]) / (4 * r_w)
     r_y = (pose_mat[0][2] - pose_mat[2][0]) / (4 * r_w)
     r_z = (pose_mat[1][0] - pose_mat[0][1]) / (4 * r_w)
@@ -66,9 +68,15 @@ class Pose_sample_buffer():
         self.roll.append(180 / math.pi * math.atan(pose_mat[2][1] / pose_mat[2][2]))
         r_w = math.sqrt(abs(1 + pose_mat[0][0] + pose_mat[1][1] + pose_mat[2][2])) / 2
         self.r_w.append(r_w)
-        self.r_x.append((pose_mat[2][1] - pose_mat[1][2]) / (4 * r_w))
-        self.r_y.append((pose_mat[0][2] - pose_mat[2][0]) / (4 * r_w))
-        self.r_z.append((pose_mat[1][0] - pose_mat[0][1]) / (4 * r_w))
+        if r_w!=0:
+            self.r_x.append((pose_mat[2][1] - pose_mat[1][2]) / (4 * r_w))
+            self.r_y.append((pose_mat[0][2] - pose_mat[2][0]) / (4 * r_w))
+            self.r_z.append((pose_mat[1][0] - pose_mat[0][1]) / (4 * r_w))
+        else:
+            self.r_x.append(0)
+            self.r_y.append(0)
+            self.r_z.append(0)
+
 
     def get_position(self):
         return (self.x, self.y, self.z)
