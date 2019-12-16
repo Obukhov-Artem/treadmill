@@ -61,14 +61,18 @@ class TreadmillControl(QMainWindow):
         # Калибровка датчиков
         self.calibration()
 
+        self.speed_unity_k = 1
+
         # Ui
         self.StartButton.clicked.connect(self.start)
         self.Angle1.clicked.connect(self.angle_1)
         self.Angle2.clicked.connect(self.angle_2)
         self.UP_Button.clicked.connect(self.update_ip)
+        self.Speed_Unity.clicked.connect(self.update_speed)
         self.Calibration_button.clicked.connect(self.calibration)
         self.StopButton.clicked.connect(self.stop)
         self.IP.setText(str(socket.gethostbyname(socket.gethostname())))
+        self.Speed_k_unity.setText(str(1))
         #   -- Max Speed bar
         self.MaxSpeedSlider.valueChanged.connect(self.speed_changed_slider)
         self.MaxSpeedBox.valueChanged.connect(self.speed_changed_box)
@@ -97,12 +101,12 @@ class TreadmillControl(QMainWindow):
 
     def calibration(self):
         self.z_napr = 1
+        self.pos_devices_array = []
         try:
             v = triad_openvr.triad_openvr()
             self.human_pos = None
             hmd_pos = None
             self.human_0 = None
-            self.pos_devices_array = []
             n = 1
             while n > 0 and self.human_pos is None:
                 n -= 1
@@ -240,6 +244,8 @@ class TreadmillControl(QMainWindow):
                 speed = (z - safe_zona / 2) * max_speed / (delta)
                 if 0 < speed < 40:
                     speed = 40
+                else:
+                    speed = min(90, speed)                         #testing!!!
 
                 return zn * min(max_speed, speed)
             elif safe_zona <= z <= tr_len:
@@ -335,7 +341,7 @@ class TreadmillControl(QMainWindow):
                         self.current_speed -= 1
                         time.sleep(0.05)
                         self.arduino.write(bytes(str('Disconnect') + '.', 'utf-8'))
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                        self.conn.sendto(bytes(str(int(self.current_speed*self.speed_unity_k )).rjust(4, " "), 'utf-8'),
                                          (UDP_IP, UDP_PORT_Unity))
                         m = self.arduino.readline().decode()
                         print(m)
@@ -363,7 +369,7 @@ class TreadmillControl(QMainWindow):
                         time.sleep(0.05)
                         # print("extreme", self.current_speed)
                         self.arduino.write(bytes(str('-Disconnect') + '.', 'utf-8'))
-                        self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                        self.conn.sendto(bytes(str(int(self.current_speed*self.speed_unity_k )).rjust(4, " "), 'utf-8'),
                                          (UDP_IP, UDP_PORT_Unity))
                         m = self.arduino.readline().decode()
                         print(m)
@@ -389,12 +395,86 @@ class TreadmillControl(QMainWindow):
             print(self.arduino, self.ArdWhile)
         self.console_output("Платформа остановлена", color="#f89000")
 
+    def NormalStop(self):  # problem
+        try:
+            self.arduino.write(bytes(str(int(self.current_speed)) + ',' + str(int(0)) + '.', 'utf-8'))
+            self.console_output("Остановка платформы.", color="#f80000")
+            print("*" * 10, "Normal stop", self.current_speed)
+            self.MainWhile = False
+
+            if self.current_speed > 0:
+                time.sleep(0.1)
+                self.arduino.write(bytes(str(int(self.current_speed)) + ',' + str(int(0)) + '.', 'utf-8'))
+                time.sleep(0.05)
+                while self.current_speed > 0:
+                    if self.arduino:
+                        self.current_speed -= 3
+                        time.sleep(0.05)
+                        self.arduino.write(bytes(str(int(self.current_speed)) + ',' + str(int(0)) + '.', 'utf-8'))
+                        self.conn.sendto(bytes(str(int(self.current_speed*self.speed_unity_k )).rjust(4, " "), 'utf-8'),
+                                         (UDP_IP, UDP_PORT_Unity))
+                        m = self.arduino.readline().decode()
+                        print(m)
+                        if "Speed=" in m:
+                            status1, status2 = m.split(",")
+
+                        self.Status_2.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status1 + '''</span></p>''')
+
+                        self.Status_3.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status2 + '''</span></p>''')
+
+                    else:
+                        break
+
+            else:
+                time.sleep(0.1)
+                self.arduino.write(bytes(str(int(self.current_speed)) + ',' + str(int(0)) + '.', 'utf-8'))
+                time.sleep(0.05)
+                while self.current_speed < 0:
+                    if self.arduino:
+                        self.current_speed += 3
+                        time.sleep(0.05)
+                        # print("extreme", self.current_speed)
+                        self.arduino.write(bytes(str(int(self.current_speed)) + ',' + str(int(0)) + '.', 'utf-8'))
+                        self.conn.sendto(bytes(str(int(self.current_speed*self.speed_unity_k )).rjust(4, " "), 'utf-8'),
+                                         (UDP_IP, UDP_PORT_Unity))
+                        m = self.arduino.readline().decode()
+                        print(m)
+                        if "Speed=" in m:
+                            status1, status2 = m.split(",")
+
+                        self.Status_2.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status1 + '''</span></p>''')
+
+                        self.Status_3.setText(
+                            '''<p align="center"><span style="color:#2f8700;">''' + status2 + '''</span></p>''')
+                    else:
+                        break
+
+            self.last_speed = 0
+            # self.arduino.write(bytes(str(int(0)) + '.', 'utf-8'))
+            self.current_speed = 0
+
+            self.MainWhile = True
+            print("STOP complete")
+        except Exception as e:
+            print("NORMAL", e, e.__class__)
+            print(self.arduino, self.ArdWhile)
+        self.console_output("Платформа остановлена", color="#f89000")
+
     def update_ip(self):
         global UDP_IP
         UDP_IP = self.IP.toPlainText()
         print("New IP", UDP_IP)
 
-        self.console_output("Установлен IP" + str(UDP_IP), color="#0000f8")
+        self.console_output("Установлен IP: " + str(UDP_IP), color="#0000f8")
+
+    def update_speed(self):
+        self.speed_unity_k = int(self.Speed_k_unity.toPlainText())
+        print("New self.speed_unity_k",  self.speed_unity_k)
+
+        self.console_output("Установлен speed: " + str(self.speed_unity_k), color="#0000f8")
 
     def main_while(self):
         self.moving = False
@@ -419,13 +499,16 @@ class TreadmillControl(QMainWindow):
                     if position_device and self.arduino:
                         z = position_device.get_position_z()[0]
                         if z == 0.0 and not flag_error:
-                            z = z_last
+                            start_error = time.time()
                             flag_error = True
 
                         elif z == 0.0 and flag_error:
-                            self.last_speed = 0
-                            self.ExtremeStop()
-                            print("Stop")
+                            end_error = time.time() - start_error
+                            if end_error>0.2:
+                                self.last_speed = 0
+                                self.NormalStop()
+                                flag_error = False
+                                print("Stop")
 
                         else:
                             z = z - self.human_0[2]
@@ -441,7 +524,7 @@ class TreadmillControl(QMainWindow):
                             print("COMMAND   "+str(int(self.current_speed)) + ',  ' + str(int(self.angle)) + '.')
                             self.arduino.write(
                                 bytes(str(int(self.current_speed)) + ',' + str(int(self.angle)) + '.', 'utf-8'))
-                            self.conn.sendto(bytes(str(int(self.current_speed)).rjust(4, " "), 'utf-8'),
+                            self.conn.sendto(bytes(str(int(self.current_speed*self.speed_unity_k )).rjust(4, " "), 'utf-8'),
                                              (UDP_IP, UDP_PORT_Unity))
                             z_last = z
                             self.last_speed = self.current_speed
