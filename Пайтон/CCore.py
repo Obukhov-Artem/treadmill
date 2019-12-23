@@ -4,13 +4,16 @@ from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QInputDialog
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtWidgets import (QSlider, QApplication, QVBoxLayout)
+from PyQt5 import QtWidgets, QtCore
 import sys
 import serial
 import time
 import serial.tools.list_ports
 import glob
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton
 
 current_port = ''
+
 current_speed = ''
 flag_port = False
 flag_speed = False
@@ -68,6 +71,12 @@ def CheckSerialPortMessage(__activeCOM=Search(), __baudrate=115200, __timeSleep=
 CheckSerialPortMessage()
 
 
+class Window2(QWidget):
+    def __init__(self):
+        super(Window2, self).__init__()
+        self.setWindowTitle('Информация о трекерах')
+
+
 class SerialThread(QThread):
     def __init__(self):
         global current_speed, current_port
@@ -107,18 +116,43 @@ class Sliderdemo(QMainWindow):
     speed_signal = pyqtSignal(bytes)
 
     def __init__(self):
-        super().__init__()
+        super(Sliderdemo, self).__init__()
         uic.loadUi('int.ui', self)
         self.initUI()
 
     def initUI(self):
         global stop_speed
+        self.list_need_trackers = []
+        self.head = self.Head.isChecked
+        self.L_hand = self.LHand.isChecked
+        self.L_leg = self.LLeg.isChecked
+        self.R_leg = self.RLeg.isChecked
+        self.R_hand = self.Rhand.isChecked
+        layout = QVBoxLayout()
+        layout.addSpacing(20)
+        layout.addWidget(self.head)
+        self.radiobox.clicked.connect(self.add_head)
+        layout.addSpacing(20)
+        layout.addWidget(self.L_hand)
+        self.radiobox.clicked.connect(self.add_L_hand)
+        layout.addSpacing(20)
+        layout.addWidget(self.L_leg)
+        self.radiobox.clicked.connect(self.add_L_leg)
+        layout.addSpacing(20)
+        layout.addWidget(self.R_leg)
+        self.radiobox.clicked.connect(self.add_R_leg)
+        layout.addSpacing(20)
+        layout.addWidget(self.R_hand)
+        self.radiobox.clicked.connect(self.add_R_hand)
+        self.setLayout(layout)
         self.start.clicked.connect(self.button_start)
         self.current_speed_ports.clicked.connect(self.transform_selection)
+        self.get_info_trackers.clicked.connect(self.button_get_info_trackers)
         self.current_COM_port.clicked.connect(self.get_dialog)
         self.pushButton.clicked.connect(self.button_connection)
+        self.secondWin = None
         self.stop.clicked.connect(self.button_stop)
-        self.setWindowTitle("Тестовый режим")
+        self.setWindowTitle("Window1")
         self.result.display(1)
         self.speed = 0
         self.text_terminal.setText(
@@ -134,6 +168,7 @@ class Sliderdemo(QMainWindow):
         self.sld.valueChanged[int].connect(self.valuechange)
         self.sld.valueChanged.connect(self.result.display)
         self.sld.setEnabled(False)
+        self.get_info_trackers.setEnabled(False)
         vbox = QVBoxLayout()
         vbox.addWidget(self.result)
         vbox.addWidget(self.sld)
@@ -143,7 +178,7 @@ class Sliderdemo(QMainWindow):
         global current_port, flag_port
         current_port, flag_port = QInputDialog.getItem(self, "Выберите COM-порт",
                                                        "Доступные COM-Порты",
-                                                       Search(), 0, False)
+                                                       Search, 0, False)
         return current_port
 
     def transform_selection(self):
@@ -191,10 +226,15 @@ class Sliderdemo(QMainWindow):
         self.thread.speed = self.speed
         return self.size
 
+    def button_get_info_trackers(self):
+        self.w2 = Window2()
+        self.w2.show()
+
     def button_start(self):
         global flag_start
         if flag_start:
             self.sld.setEnabled(True)
+            self.get_info_trackers.setEnabled(True)
             self.start.setEnabled(False)
             self.current_speed_ports.setEnabled(False)
             self.current_COM_port.setEnabled(False)
@@ -223,6 +263,36 @@ class Sliderdemo(QMainWindow):
         else:
             self.text_terminal.setText(
                 "Данных на arduino пока не поступало.")
+
+    def add_head(self):
+        if self.head.text() not in self.list_need_trackers:
+            self.list_need_trackers.append(self.head.text())
+        else:
+            pass
+
+    def add_L_hand(self):
+        if self.L_hand.text() not in self.list_need_trackers:
+            self.list_need_trackers.append(self.L_hand.text())
+        else:
+            pass
+
+    def add_L_leg(self):
+        if self.L_leg.text() not in self.list_need_trackers:
+            self.list_need_trackers.append(self.L_leg.text())
+        else:
+            pass
+
+    def add_R_leg(self):
+        if self.R_leg.text() not in self.list_need_trackers:
+            self.list_need_trackers.append(self.R_leg.text())
+        else:
+            pass
+
+    def add_R_hand(self):
+        if self.R_hand.text() not in self.list_need_trackers:
+            self.list_need_trackers.append(self.R_hand.text())
+        else:
+            pass
 
 
 app = QApplication(sys.argv)
