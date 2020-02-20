@@ -24,7 +24,7 @@ UDP_PORT_Unity = 3031
 class TreadmillControl(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__()
-        uic.loadUi('ui3.ui', self)
+        uic.loadUi('ui_new.ui', self)
         self.setWindowTitle('Treadmill')
         self.current_speed = 0
         self.treadmill_length = 70
@@ -60,7 +60,7 @@ class TreadmillControl(QMainWindow):
 
         # Калибровка датчиков
         self.calibration()
-
+        self.record_flag = True
         self.speed_unity_k = 1
 
         # Ui
@@ -68,11 +68,11 @@ class TreadmillControl(QMainWindow):
         self.Angle1.clicked.connect(self.angle_1)
         self.Angle2.clicked.connect(self.angle_2)
         self.UP_Button.clicked.connect(self.update_ip)
-        self.Speed_Unity.clicked.connect(self.update_speed)
+
         self.Calibration_button.clicked.connect(self.calibration)
         self.StopButton.clicked.connect(self.stop)
         self.IP.setText(str(socket.gethostbyname(socket.gethostname())))
-        self.Speed_k_unity.setText(str(1))
+
         #   -- Max Speed bar
         self.MaxSpeedSlider.valueChanged.connect(self.speed_changed_slider)
         self.MaxSpeedBox.valueChanged.connect(self.speed_changed_box)
