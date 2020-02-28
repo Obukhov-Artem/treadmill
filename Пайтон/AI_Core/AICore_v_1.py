@@ -1,4 +1,4 @@
-import serial.tools.list_ports
+#import serial.tools.list_ports
 from datetime import datetime
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -91,6 +91,10 @@ class TreadmillControl(QMainWindow):
         self.Ard_trackers_button.clicked.connect(self.ard_change_trackers)
         self.ArdSpeedSelect.clicked.connect(self.ard_change_speed)
 
+        # my checkbox
+        self.ActionFlag.clicked.connect(self.type_of_action)
+        self.action = 0
+
     def angle_1(self):
         self.angle = 1
         print("COMMAND1   "+str(int(self.current_speed)) + ',  ' + str(int(self.angle)) + '.')
@@ -109,7 +113,7 @@ class TreadmillControl(QMainWindow):
             self.human_pos = None
             hmd_pos = None
             self.human_0 = None
-            n = 1
+            n = 5
             while n > 0 and self.human_pos is None:
                 n -= 1
                 for device in v.devices:
@@ -124,7 +128,10 @@ class TreadmillControl(QMainWindow):
                         else:
 
                             self.pos_devices_array.append(
-                                (v.devices[device].get_serial(),
+                                (position_device.get_position_x()[0],
+                                 position_device.get_position_y()[0],
+                                 position_device.get_position_z()[0],
+                                 v.devices[device].get_serial(),
                                  v.device_index_map[v.devices[device].index]))
                             print(v.devices[device].get_serial())
                             if SERIAL is None:
@@ -528,7 +535,7 @@ class TreadmillControl(QMainWindow):
         self.data_coord = []
         z = 0
         self.current_speed = 0
-        try:
+        try:            # что за исключение??
             v = triad_openvr.triad_openvr()
 
             current_serial, device = self.ard_trackers
@@ -630,7 +637,14 @@ class TreadmillControl(QMainWindow):
         return
 
 
-
+    ##################
+    def type_of_action(self):
+        if self.ActionFlag.isChecked():
+            self.action = 1
+        else:
+            self.action = 0
+        print(self.action)
+    ###############
 
     """
     def angle_while(self):
@@ -749,7 +763,7 @@ class TreadmillControl(QMainWindow):
         tracker, ok = QInputDialog.getItem(self, "Трекеры", "Доступные трекеры", accept_trackers, False)
         if ok:
             for device in self.pos_devices_array:
-                if device[0] == tracker:
+                if device[3] == tracker:
                     self.ard_trackers = device
                     self.Ard_trackers.setText(tracker)
                     SERIAL = tracker
@@ -816,7 +830,7 @@ class TreadmillControl(QMainWindow):
         return
 
 
-def csv_writer(self, path, fieldnames, data):
+def csv_writer(self, path, fieldnames, data):   # запись в цсв
     with open(path, "w", newline='') as out_file:
         writer = csv.writer(out_file, delimiter=';')
         writer.writerow(fieldnames)
@@ -836,7 +850,7 @@ def log_uncaught_exceptions(ex_cls, ex, tb):
 
 import sys
 
-sys.excepthook = log_uncaught_exceptions
+sys.excepthook = log_uncaught_exceptions    #почему без аргументов????
 
 app = QApplication(sys.argv)
 ex = TreadmillControl()
