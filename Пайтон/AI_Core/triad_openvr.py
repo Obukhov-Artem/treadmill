@@ -77,7 +77,8 @@ class Pose_sample_buffer():
             self.r_y.append(0)
             self.r_z.append(0)
 
-
+    def get_all_position(self):
+        return self.x[0], self.y[0], self.z[0], self.yaw[0], self.pitch[0], self.roll[0]
     def get_position(self):
         return (self.x, self.y, self.z)
 

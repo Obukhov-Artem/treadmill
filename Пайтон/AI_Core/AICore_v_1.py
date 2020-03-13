@@ -528,7 +528,7 @@ class TreadmillControl(QMainWindow):
 
     def get_all_position(self, openvr):
         data_current = []
-
+        num_device =0
         for serial in self.slovar_trackers:
             if self.slovar_trackers[serial]:
                 try:
@@ -536,13 +536,21 @@ class TreadmillControl(QMainWindow):
                     position_device = openvr.devices[device].sample(1, 500)
 
                     if position_device:
-                        c = position_device.get_position()
-                        #x,y,z - нужно расширить (delta + акселерометр или гироскоп)
-                        data_current.extend([c[0][0], c[1][0], c[2][0]])
+                        x, y, z, yaw, pitch, roll = position_device.get_all_position()
+                        if len(self.data_coord) == 0:
+                            self.data_pref[device] = [x, y, z, yaw, pitch, roll, 0, 0, 0]
+                            dx,dy,dz = 0, 0, 0
+                        else:
 
+                            lz,ly,lz = self.data_pref[device][0],self.data_pref[device][1],self.data_pref[device][2]
+                            dx, dy, dz = lz-x, ly-y,lz- z
+                            self.data_pref[device] = [x, y, z, yaw, pitch, roll, dx, dy, dz]
+
+                        data_current.extend([x, y, z, yaw, pitch, roll, dx, dy, dz])
+                        num_device+=1
                 except Exception as e:
                     print(e)
-        data_current.extend([self.current_speed])
+        data_current.extend([self.current_speed,self.action])
         return data_current
 
     def main_while(self):
@@ -554,9 +562,10 @@ class TreadmillControl(QMainWindow):
         start_time = time.time()
         start_time2 = time.time()
         self.data_coord = []
+        self.data_pref = {}
         z = 0
         self.current_speed = 0
-        try:            # что за исключение??
+        try:
             v = triad_openvr.triad_openvr()
 
             current_serial, device = self.ard_trackers
