@@ -480,7 +480,7 @@ class TreadmillControl(QMainWindow):
 
     def Search(self, __baudrate=115200):
         __COMlist = []
-        __COM = ['COM' + str(i) for i in range(4, 100)]
+        __COM = ['COM' + str(i) for i in range(1, 100)]
 
         for _COM in __COM:
             try:

@@ -1,4 +1,4 @@
-import serial.tools.list_ports
+#import serial.tools.list_ports
 from datetime import datetime
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -6,7 +6,7 @@ from PyQt5 import uic
 import triad_openvr
 import threading
 import serial
-import time
+import time, csv
 import sys
 import socket
 MAX_DELTA = 150
@@ -24,7 +24,7 @@ UDP_PORT_Unity = 3031
 class TreadmillControl(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__()
-        uic.loadUi('ui3.ui', self)
+        uic.loadUi('ui_new.ui', self)
         self.setWindowTitle('Treadmill')
         self.current_speed = 0
         self.treadmill_length = 70
@@ -60,7 +60,7 @@ class TreadmillControl(QMainWindow):
 
         # Калибровка датчиков
         self.calibration()
-
+        self.record_flag = True
         self.speed_unity_k = 1
 
         # Ui
@@ -68,11 +68,11 @@ class TreadmillControl(QMainWindow):
         self.Angle1.clicked.connect(self.angle_1)
         self.Angle2.clicked.connect(self.angle_2)
         self.UP_Button.clicked.connect(self.update_ip)
-        self.Speed_Unity.clicked.connect(self.update_speed)
+
         self.Calibration_button.clicked.connect(self.calibration)
         self.StopButton.clicked.connect(self.stop)
         self.IP.setText(str(socket.gethostbyname(socket.gethostname())))
-        self.Speed_k_unity.setText(str(1))
+
         #   -- Max Speed bar
         self.MaxSpeedSlider.valueChanged.connect(self.speed_changed_slider)
         self.MaxSpeedBox.valueChanged.connect(self.speed_changed_box)
@@ -91,6 +91,10 @@ class TreadmillControl(QMainWindow):
         self.Ard_trackers_button.clicked.connect(self.ard_change_trackers)
         self.ArdSpeedSelect.clicked.connect(self.ard_change_speed)
 
+        # my checkbox
+        self.ActionFlag.clicked.connect(self.type_of_action)
+        self.action = 0
+
     def angle_1(self):
         self.angle = 1
         print("COMMAND1   "+str(int(self.current_speed)) + ',  ' + str(int(self.angle)) + '.')
@@ -101,13 +105,16 @@ class TreadmillControl(QMainWindow):
 
     def calibration(self):
         self.z_napr = 1
+        hmd_pos = None
+        right_leg, left_leg = None, None
+        right_hand, left_hand = None, None
         self.pos_devices_array = []
         try:
             v = triad_openvr.triad_openvr()
             self.human_pos = None
             hmd_pos = None
             self.human_0 = None
-            n = 1
+            n = 5
             while n > 0 and self.human_pos is None:
                 n -= 1
                 for device in v.devices:
@@ -121,9 +128,12 @@ class TreadmillControl(QMainWindow):
                                        v.devices[device].get_serial(), v.device_index_map[v.devices[device].index])
                         else:
 
-                            self.pos_devices_array.append(
-                                (v.devices[device].get_serial(),
-                                 v.device_index_map[v.devices[device].index]))
+                            self.pos_devices_array.append([
+                                position_device.get_position_x()[0],
+                                 position_device.get_position_y()[0],
+                                 position_device.get_position_z()[0],
+                                 v.devices[device].get_serial(),
+                                 v.device_index_map[v.devices[device].index]])
                             print(v.devices[device].get_serial())
                             if SERIAL is None:
                                 print("OK")
@@ -142,19 +152,59 @@ class TreadmillControl(QMainWindow):
                                     self.human_pos = (v.devices[device].get_serial(),
                                                       v.device_index_map[v.devices[device].index])
 
+
+
             p_a = sorted(self.pos_devices_array, key=lambda x: x[1])
-            print(p_a)
+            [print(p) for p in p_a]
             if len(p_a) > 0:
                 print("New postion")
                 pos_str = "x= " + str(self.human_0[0])[:3] + " y= " + str(self.human_0[1])[:3] + " z= " + str(
                     self.human_0[2])[:5] + ""
                 print(pos_str)
+                for i in range(len(p_a)):
+                        p_a[i][0]= p_a[i][0]-self.human_0[0]
+                        p_a[i][1] = p_a[i][1]-self.human_0[1]
+                        p_a[i][2] = p_a[i][2]-self.human_0[2]
 
 
-                self.console_output("Калибровка " + pos_str, color="#000000")
-                self.slovar_trackers = {"Человек": self.human_pos}
-                self.ard_trackers = self.human_pos
-                self.Ard_trackers.setText(self.ard_trackers[0])
+            [print(p) for p in p_a]
+            if len(p_a) >= 2:
+                if p_a[0][1] < 0.5 and p_a[1][1] < 0.5:
+                    if p_a[0][0] < p_a[1][0]:
+                        left_leg = (p_a[0][3], p_a[0][4])
+                        right_leg = (p_a[1][3], p_a[1][4])
+                        del (p_a[0])
+                        del (p_a[1])
+                    else:
+                        right_leg = (p_a[0][3], p_a[0][4])
+                        left_leg = (p_a[1][3], p_a[1][4])
+                        del (p_a[0])
+                        del (p_a[1])
+
+            if len(p_a) >= 2:
+                if p_a[0][1] < 1 and p_a[1][1] < 1:
+                    if p_a[0][0] < p_a[1][0]:
+                        left_hand = (p_a[0][3], p_a[0][4])
+                        right_hand = (p_a[1][3], p_a[1][4])
+                        del (p_a[0])
+                        del (p_a[1])
+                    else:
+                        right_hand = (p_a[0][3], p_a[0][4])
+                        left_hand = (p_a[1][3], p_a[1][4])
+                        del (p_a[0])
+                        del (p_a[1])
+            self.slovar_trackers = {"Человек": self.human_pos,
+                                "Правая_нога": right_leg,
+                                "Левая_нога": left_leg,
+                                "Правая_рука": right_hand,
+                                "Левая_рука": left_hand
+                                }
+
+            print(self.slovar_trackers)
+
+            self.console_output("Калибровка " + pos_str, color="#000000")
+            self.ard_trackers = self.human_pos
+            self.Ard_trackers.setText(self.ard_trackers[0])
         except Exception as e:
             self.console_output("VR не подключен ", color="#ff0000")
 
@@ -476,6 +526,33 @@ class TreadmillControl(QMainWindow):
 
         self.console_output("Установлен speed: " + str(self.speed_unity_k), color="#0000f8")
 
+    def get_all_position(self, openvr):
+        data_current = []
+        num_device =0
+        for serial in self.slovar_trackers:
+            if self.slovar_trackers[serial]:
+                try:
+                    current_serial, device = self.slovar_trackers[serial]
+                    position_device = openvr.devices[device].sample(1, 500)
+
+                    if position_device:
+                        x, y, z, yaw, pitch, roll = position_device.get_all_position()
+                        if len(self.data_coord) == 0:
+                            self.data_pref[device] = [x, y, z, yaw, pitch, roll, 0, 0, 0]
+                            dx,dy,dz = 0, 0, 0
+                        else:
+
+                            lz,ly,lz = self.data_pref[device][0],self.data_pref[device][1],self.data_pref[device][2]
+                            dx, dy, dz = lz-x, ly-y,lz- z
+                            self.data_pref[device] = [x, y, z, yaw, pitch, roll, dx, dy, dz]
+
+                        data_current.extend([x, y, z, yaw, pitch, roll, dx, dy, dz])
+                        num_device+=1
+                except Exception as e:
+                    print(e)
+        data_current.extend([self.current_speed,self.action])
+        return data_current
+
     def main_while(self):
         self.moving = False
         status1, status2 = "",""
@@ -483,6 +560,9 @@ class TreadmillControl(QMainWindow):
         self.last_speed = 0
         angle_message = 0
         start_time = time.time()
+        start_time2 = time.time()
+        self.data_coord = []
+        self.data_pref = {}
         z = 0
         self.current_speed = 0
         try:
@@ -513,6 +593,10 @@ class TreadmillControl(QMainWindow):
                         else:
                             z = z - self.human_0[2]
                             self.current_speed = self.get_speed_new(z)
+                            if self.record_flag:
+                                if time.time() > start_time + 1 / 50:
+                                    self.data_coord.append(self.get_all_position(v))
+                                    start_time = time.time()
 
                             if abs(self.current_speed - self.last_speed) > MAX_DELTA:
                                 print("ERROR", self.current_speed, self.last_speed,
@@ -531,9 +615,9 @@ class TreadmillControl(QMainWindow):
 
                             m = self.arduino.readline().decode()
                             print(m)
-                            if time.time()-start_time>0.2:
+                            if time.time()-start_time2>0.2:
                                 print("UPDATE")
-                                start_time = time.time()
+                                start_time2 = time.time()
                                 if "Speed=" in m:
                                     status1,status2  = m.split(",")
 
@@ -583,7 +667,14 @@ class TreadmillControl(QMainWindow):
         return
 
 
-
+    ##################
+    def type_of_action(self):
+        if self.ActionFlag.isChecked():
+            self.action = 1
+        else:
+            self.action = 0
+        print(self.action)
+    ###############
 
     """
     def angle_while(self):
@@ -611,7 +702,12 @@ class TreadmillControl(QMainWindow):
     def stop(self):
         if self.arduino:
             self.ExtremeStop()
-
+        if self.record_flag:
+            print("WRITING")
+            name = "data" + datetime.strftime(datetime.now(), "%Hh%Mm%Ss")
+            self.csv_writer(f'{name}.csv', self.data_coord)
+            self.data_coord = []
+            print("WRITING END")
         self.StopButton.setEnabled(False)
         self.ArduinoBar.setEnabled(True)
         self.Calibration_button.setEnabled(True)
@@ -693,11 +789,11 @@ class TreadmillControl(QMainWindow):
         global SERIAL
         accept_trackers = []
         for device in self.pos_devices_array:
-            accept_trackers.append(device[0])
+            accept_trackers.append(device[3])
         tracker, ok = QInputDialog.getItem(self, "Трекеры", "Доступные трекеры", accept_trackers, False)
         if ok:
             for device in self.pos_devices_array:
-                if device[0] == tracker:
+                if device[3] == tracker:
                     self.ard_trackers = device
                     self.Ard_trackers.setText(tracker)
                     SERIAL = tracker
@@ -764,6 +860,13 @@ class TreadmillControl(QMainWindow):
         return
 
 
+    def csv_writer(self, path, data):   # запись в цсв
+        with open(path, "w", newline='') as out_file:
+            writer = csv.writer(out_file, delimiter=';')
+            for row in data:
+                writer.writerow(row)
+
+
 def log_uncaught_exceptions(ex_cls, ex, tb):
     text = '{}: {}:\n'.format(ex_cls.__name__, ex)
     import traceback
@@ -776,7 +879,7 @@ def log_uncaught_exceptions(ex_cls, ex, tb):
 
 import sys
 
-sys.excepthook = log_uncaught_exceptions
+sys.excepthook = log_uncaught_exceptions    #почему без аргументов????
 
 app = QApplication(sys.argv)
 ex = TreadmillControl()
