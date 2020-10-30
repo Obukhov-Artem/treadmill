@@ -44,9 +44,46 @@ model_speed.summary()
 
 
 
+import matplotlib.pyplot as plt
+
  
-model_predict.fit(X, Y_1, epochs=20, batch_size=32, validation_split=0.25, verbose=1)
-model_speed.fit(X, Y_2, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
+hh1 = model_predict.fit(X, Y_1, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
+hh2 = model_speed.fit(X, Y_2, epochs=10, batch_size=32, validation_split=0.25, verbose=1)
+plt.figure()
+N = 10
+plt.grid(True)
+plt.plot(np.arange(1, N + 1), hh1.history["loss"], label="Модель прогнозирования движений (Ошибка)", color="#00ff00",linewidth =3)
+# plt.plot(np.arange(1, N+1), history.history["accuracy"], label="accuracy")
+plt.xlabel("Эпоха")
+plt.ylabel("Ошибка")
+plt.legend(loc="lower left")
+plt.show()
+
+plt.figure()
+plt.grid(True)
+plt.plot(np.arange(1, N + 1), hh1.history["acc"], label="Модель прогнозирования движений (Точность)", color="#ff0000",linewidth =3)
+plt.xlabel("Эпоха")
+plt.ylabel("Точность")
+plt.legend(loc="lower right")
+plt.show()
+
+plt.figure()
+N = 10
+plt.grid(True)
+plt.plot(np.arange(1, N + 1), hh2.history["loss"], label="Модель распознавания движений  (Ошибка)", color="#00ff00",linewidth =3)
+# plt.plot(np.arange(1, N+1), history.history["accuracy"], label="accuracy")
+plt.xlabel("Эпоха")
+plt.ylabel("Ошибка")
+plt.legend(loc="lower left")
+plt.show()
+
+plt.figure()
+plt.grid(True)
+plt.plot(np.arange(1, N + 1), hh2.history["acc"], label="Модель распознавания движений  (Точность)", color="#ff0000",linewidth =3)
+plt.xlabel("Эпоха")
+plt.ylabel("Точность")
+plt.legend(loc="lower right")
+plt.show()
 
 input_layer = Input(shape=(10, 6,))
 h1 = model_predict(input_layer)
