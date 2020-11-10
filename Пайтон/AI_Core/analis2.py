@@ -1,7 +1,7 @@
 import pandas
 import matplotlib.pyplot as plt
 import numpy as np
-data = pandas.read_csv("Kirill\dataOctober 30 13 06 51.csv", sep=";")
+data = pandas.read_csv("two side.csv", sep=";")
 
 moving = False
 
@@ -91,7 +91,15 @@ def alg_lin_2(z):
                 return zn * max_speed
         else:
             return 0
+from keras.models import load_model
 
+def nn(z,speed,model):
+    action = [-10, 0, 10]
+    a = np.argmax(model.predict(np.array([z])))
+
+    return speed+action[a]
+
+NN = load_model("testing_new.h5")
 data = data.values
 print(data.shape)
 body_z = data[:,2]
@@ -116,16 +124,16 @@ foot_dz_all = [0]
 foot_dz_all2 = [0]
 new_speed = []
 h = 20
+my_speed = 0
 for i in range(1,len(body_z)):
     tr_z_body.append(tr_z_body[i-1]+body_dz[i]+delta_speed[i])
     speed = alg_lin_1(alg_1_z_body[i-1])
     alg_1_speed_treadmill.append(speed*0.005)
     alg_1_z_body.append(alg_1_z_body[i-1]+body_dz[i]+delta_speed[i]-speed*(0.005/50))
 
-
-    speed = alg_lin_2(alg_2_z_body[i-1])
-    alg_2_speed_treadmill.append(speed*0.005)
-    alg_2_z_body.append(alg_2_z_body[i-1]+body_dz[i]+delta_speed[i]-speed*(0.005/50))
+    my_speed = nn(alg_2_z_body[i-1],my_speed,NN)
+    alg_2_speed_treadmill.append(my_speed*0.005)
+    alg_2_z_body.append(alg_2_z_body[i-1]+body_dz[i]+delta_speed[i]-my_speed*(0.005/50))
 
 
     tr_foot_1.append(tr_foot_1[i-1]+foot_dz_1[i]+delta_speed[i])
