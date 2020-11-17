@@ -2,8 +2,8 @@ import pandas
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pandas.read_csv("data\Kirill\dataOctober 30 13 06 51.csv", sep=";")
-#data = pandas.read_csv("two side.csv", sep=";")
+#data = pandas.read_csv("data\Kirill\dataOctober 30 13 06 51.csv", sep=";")
+data = pandas.read_csv("two side.csv", sep=";")
 
 moving = False
 
@@ -112,6 +112,18 @@ def nn(z, speed, model):
         return -255
     return speed + action[a]
 
+def nn2(z,d_z, speed, model):
+    action = [-1, 0, 1]
+    p = model.predict(np.array([[z,d_z, speed]]))
+    a = action[np.argmax(p)]
+    speed += a * 0.005
+    if speed >= 1.3:
+        speed = 1.3
+    if speed <= -1.3:
+        speed = -1.3
+    print(speed, z, d_z,p)
+    return speed
+
 
 def get_data(data,new_body, new_foot_1,new_foot_2, speed):
     k = (0.005 / 50)
@@ -124,7 +136,7 @@ def get_data(data,new_body, new_foot_1,new_foot_2, speed):
     return data
 
 
-NN = load_model("NN_1.h5")
+NN = load_model("testing_new.h5")
 data = data.values
 nn_data = []
 k = (0.005 / 50)
@@ -182,16 +194,16 @@ for i in range(1, min(len(body_z),NUM)):
     #z = get_data(nn_data[i-1],nn_body[i-1],nn_foot_1[-1],nn_foot_2[-1], my_speed)
 
     # speed, z, z_f1,z_f2, dz, dz_f1,dz_f2 = 7
-    my_speed = nn(np.array([my_speed,nn_body[i - 1],nn_foot_1[i - 1],nn_foot_2[i - 1],
-                           body_dz[i], foot_dz_1[i], foot_dz_2[i]]), my_speed, NN)
-    #my_speed = nn(z, my_speed, NN)
+    # my_speed = nn(np.array([my_speed,nn_body[i - 1],nn_foot_1[i - 1],nn_foot_2[i - 1],
+    #                        body_dz[i], foot_dz_1[i], foot_dz_2[i]]), my_speed, NN)
+    # #my_speed = nn(z, my_speed, NN)
+    my_speed = nn2(nn_body[i - 1], body_dz[i], my_speed, NN)
 
+    nn_speed_treadmill.append(my_speed)
+    new_body = nn_body[i - 1] + body_dz[i] + delta_speed[i] - my_speed/50
+    new_foot_1 = nn_foot_1[i - 1] + foot_dz_1[i] + delta_speed[i] - my_speed/50
+    new_foot_2 = nn_foot_2[i - 1] + foot_dz_2[i] + delta_speed[i] - my_speed/50
 
-    nn_speed_treadmill.append(my_speed * 0.005)
-    new_body = nn_body[i - 1] + body_dz[i] + delta_speed[i] - my_speed * (0.005 / 50)
-    new_foot_1 = nn_foot_1[i - 1] + foot_dz_1[i] + delta_speed[i] - my_speed * (0.005 / 50)
-    new_foot_2 = nn_foot_2[i - 1] + foot_dz_2[i] + delta_speed[i] - my_speed * (0.005 / 50)
-    print(nn_body[i - 1],my_speed, new_body)
     nn_body.append(new_body)
     nn_foot_1.append(new_foot_1)
     nn_foot_2.append(new_foot_2)

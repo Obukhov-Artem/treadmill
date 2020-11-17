@@ -78,18 +78,20 @@ SHAPE = (3,)
 
 
 def award_function(z):
-    if abs(z)<0.2:
+    if abs(z)<0.1:
         return 1-abs(z)
-    return 0
+    if abs(z) < 0.8:
+        return 0
+    return -1
 
 
 def buildmodel():
     print("Now we build the model")
     model = Sequential()
     model.add(Dense(50, activation='relu', input_shape=SHAPE))
-    model.add(Dropout(0.5))
-    model.add(Dense(80, activation='relu'))
-    model.add(Dense(80, activation='relu'))
+    model.add(Dropout(0.3))
+    model.add(Dense(40, activation='relu'))
+    model.add(Dense(30, activation='relu'))
     model.add(Dense(3))
     model.compile(optimizer='adam', loss='mse')
     print("We finish building the model")
@@ -145,7 +147,7 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
     return X, Y
 
 
-NUM_EPOCH = 100
+NUM_EPOCH = 50
 model = buildmodel()
 #model = load_model("testing.h5")
 for e in range(NUM_EPOCH):
