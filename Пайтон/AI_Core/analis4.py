@@ -2,8 +2,7 @@ import pandas
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pandas.read_csv("data\Kirill\dataOctober 30 13 06 51.csv", sep=";")
-#data = pandas.read_csv("two side.csv", sep=";")
+data = pandas.read_csv("two side.csv", sep=";")
 
 moving = False
 
@@ -104,12 +103,9 @@ def nn(z, speed, model):
     action = [-1, 0, 1]
     p = model.predict(np.array([z]))
     a = np.argmax(p)
-    # print(speed,p, z)
-    # print("*"*10)
-    if speed + action[a]>255:
-        return 255
-    if speed + action[a]<-255:
-        return -255
+    print(speed,p, z)
+    print("*"*10)
+
     return speed + action[a]
 
 
@@ -164,46 +160,33 @@ foot_dz_all = [0]
 foot_dz_all2 = [0]
 new_speed = []
 h = 20
+dz_values = [0]
+buf = []
+dz_v = 0
+t = 0
 my_speed = 0
-NUM =4000
-for i in range(1, min(len(body_z),NUM)):
+for i in range(1, len(body_z)):
     tr_z_body.append(tr_z_body[i - 1] + body_dz[i] + delta_speed[i])
     tr_foot_1.append(tr_foot_1[i - 1] + foot_dz_1[i] + delta_speed[i])
     tr_foot_2.append(tr_foot_2[i - 1] + foot_dz_2[i] + delta_speed[i])
-
-
+    if t< h:
+        buf.append(abs(body_dz[i]))
+        t+=1
+    else:
+        dz_v = sum(buf)
+        del buf[0]
+        buf.append(abs(body_dz[i]))
+    dz_values.append(dz_v)
 
     speed = alg_lin_1(alg_1_z_body[i - 1])
 
     alg_1_speed_treadmill.append(speed * 0.005)
     alg_1_z_body.append(alg_1_z_body[i - 1] + body_dz[i] + delta_speed[i] - speed * (0.005 / 50))
 
-
-    #z = get_data(nn_data[i-1],nn_body[i-1],nn_foot_1[-1],nn_foot_2[-1], my_speed)
-
-    # speed, z, z_f1,z_f2, dz, dz_f1,dz_f2 = 7
-    my_speed = nn(np.array([my_speed,nn_body[i - 1],nn_foot_1[i - 1],nn_foot_2[i - 1],
-                           body_dz[i], foot_dz_1[i], foot_dz_2[i]]), my_speed, NN)
-    #my_speed = nn(z, my_speed, NN)
-
-
-    nn_speed_treadmill.append(my_speed * 0.005)
-    new_body = nn_body[i - 1] + body_dz[i] + delta_speed[i] - my_speed * (0.005 / 50)
-    new_foot_1 = nn_foot_1[i - 1] + foot_dz_1[i] + delta_speed[i] - my_speed * (0.005 / 50)
-    new_foot_2 = nn_foot_2[i - 1] + foot_dz_2[i] + delta_speed[i] - my_speed * (0.005 / 50)
-    print(nn_body[i - 1],my_speed, new_body)
-    nn_body.append(new_body)
-    nn_foot_1.append(new_foot_1)
-    nn_foot_2.append(new_foot_2)
-
-    # m_foot = max([(j) for j in foot_dz_1[i:max(i - h, 0):-1]] + [(j) for j in foot_dz_2[i:max(i - h, 0):-1]])
-    # m_foot2 = max([abs(j) for j in foot_dz_1[i:max(i - h, 0):-1]] + [abs(j) for j in foot_dz_2[i:max(i - h, 0):-1]])
-    # foot_dz_all.append(m_foot)
-    # foot_dz_all2.append(m_foot2)
 foot_dz_all = np.array(foot_dz_all)
-print(foot_dz_all[:5])
+print(len(dz_values))
 graph = True
-x = [i / 50 for i in range(min(len(body_z),NUM))]
+x = [i / 50 for i in range(len(body_z))]
 # plt.plot(range(len(body_z)),body_z)
 if graph:
 
@@ -211,11 +194,9 @@ if graph:
     ax1 = ax.twinx()
     # ax.plot(x, body_z, color='orange',label="body_z")
     # ax1.plot(x, speed_treadmill, color='red',label="speed_treadmill")
-    ax.plot(x, tr_z_body, color='yellow', label="tr_z_body")
-    ax.plot(x, alg_1_z_body, color='orange', label="alg_1_z_body")
-    ax.plot(x, nn_body, color='red', label="nn_z_body")
-    ax1.plot(x, alg_1_speed_treadmill, color='green', label="alg_1_speed_treadmill")
-    ax1.plot(x, nn_speed_treadmill, color='blue', label="nn_speed_treadmill")
+    #ax.plot(x, alg_1_z_body, color='orange', label="alg_1_z_body")
+    ax.plot(x, alg_1_speed_treadmill, color='red', label="alg_1_speed_treadmill")
+    ax1.plot(x, dz_values, color='blue', label="dz_values")
     ax.set_ylabel('Z')
     ax1.set_ylabel('speed treadmill')
     ax.set_title("Положение человека на дорожке")
