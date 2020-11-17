@@ -102,10 +102,10 @@ def buildmodel():
 def training(model):
     speed_treadmill= 0
     action = [-1, 0, 1]
-    ITERATION =1000
+    ITERATION =500
     reward = 0
     exp = []
-    for i in range(10):
+    for i in range(5):
 
         dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
         z = random.random() * random.choice([-0.5, 0.5])
@@ -147,14 +147,14 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
     return X, Y
 
 
-NUM_EPOCH = 50
+NUM_EPOCH = 30
 model = buildmodel()
 #model = load_model("testing.h5")
 for e in range(NUM_EPOCH):
     loss = 0.0
     lz, ldz, ls, a, r, z, d_z, s_t = 0, 0, 0, 0,0,0,0,0
     exp = training(model)
-    X, Y = next_batch(exp, model, 3, 0.99, 1000)
+    X, Y = next_batch(exp, model, 3, 0.99, 2000)
     loss += model.train_on_batch(X, Y)
     print("*"*5,e, loss)
 
