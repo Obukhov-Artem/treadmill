@@ -136,7 +136,7 @@ def get_data(data,new_body, new_foot_1,new_foot_2, speed):
     return data
 
 
-NN = load_model("testing_new.h5")
+NN = load_model("testing_new2.h5")
 data = data.values
 nn_data = []
 k = (0.005 / 50)

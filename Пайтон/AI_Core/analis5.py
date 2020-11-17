@@ -89,10 +89,10 @@ def buildmodel():
     print("Now we build the model")
     model = Sequential()
     model.add(Dense(100, activation='relu', input_shape=SHAPE))
-    model.add(Dense(100, activation='relu'))
+    model.add(Dense(200, activation='relu'))
     model.add(Dropout(0.3))
+    model.add(Dense(200, activation='relu'))
     model.add(Dense(100, activation='relu'))
-    model.add(Dense(50, activation='relu'))
     model.add(Dense(3))
     model.compile(optimizer='adam', loss='mse')
     print("We finish building the model")
@@ -106,12 +106,15 @@ def training(model):
     ITERATION =2000
     reward = 0
     exp = []
-    while(len(exp)<10000):
+    final_life = 0
+    while(len(exp)<5000):
 
         dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
         z = random.random() * random.choice([-0.3, 0.3])
         zn = random.choice([1,-1])
+        life = 0
         for j in range(dia,dia+ITERATION):
+            life+=1
             last_z = z
             last_delta_z  =body_dz[j-1]
             last_speed  =speed_treadmill
@@ -133,8 +136,9 @@ def training(model):
             if abs(z)>2:
                 break
             exp.append([last_z,last_delta_z,last_speed, current_action, reward, z,delta_z, speed_treadmill])
+            final_life = max(final_life,life)
 
-        #print(z, speed_treadmill)
+    print(final_life)
     return exp
 
 
@@ -154,21 +158,19 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
     return X, Y
 
 
-NUM_EPOCH = 50
+NUM_EPOCH = 250
 model = buildmodel()
 #model = load_model("testing.h5")
 
 for e in range(NUM_EPOCH):
     t = time.time()
-    print()
     loss = 0.0
     lz, ldz, ls, a, r, z, d_z, s_t = 0, 0, 0, 0,0,0,0,0
     exp = training(model)
-    X, Y = next_batch(exp, model, 3, 0.99, 10000)
+    X, Y = next_batch(exp, model, 3, 0.99, 5000)
     loss += model.train_on_batch(X, Y)
     print("*"*10,e, loss, time.time()-t)
     print("*"*25)
-    print()
 
 # speed = 0
 # action = [-1, 0, 1]
