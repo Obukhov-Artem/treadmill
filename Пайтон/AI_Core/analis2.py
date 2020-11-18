@@ -2,8 +2,8 @@ import pandas
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pandas.read_csv("data\Kirill\dataOctober 30 13 09 55.csv", sep=";")
-#data = pandas.read_csv("two side.csv", sep=";")
+#data = pandas.read_csv("data\Kirill\dataOctober 30 13 09 55.csv", sep=";")
+data = pandas.read_csv("two side.csv", sep=";")
 
 moving = False
 
@@ -136,7 +136,7 @@ def get_data(data,new_body, new_foot_1,new_foot_2, speed):
     return data
 
 
-NN = load_model("testing_new2.h5")
+NN = load_model("qmodel_150.h5")
 data = data.values
 nn_data = []
 k = (0.005 / 50)
@@ -223,7 +223,7 @@ if graph:
     ax1 = ax.twinx()
     # ax.plot(x, body_z, color='orange',label="body_z")
     # ax1.plot(x, speed_treadmill, color='red',label="speed_treadmill")
-    ax.plot(x, tr_z_body, color='yellow', label="tr_z_body")
+    #ax.plot(x, tr_z_body, color='yellow', label="tr_z_body")
     ax.plot(x, alg_1_z_body, color='orange', label="alg_1_z_body")
     ax.plot(x, nn_body, color='red', label="nn_z_body")
     ax1.plot(x, alg_1_speed_treadmill, color='green', label="alg_1_speed_treadmill")

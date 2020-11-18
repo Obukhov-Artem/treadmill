@@ -105,15 +105,16 @@ def buildmodel():
 def training(model):
     speed_treadmill= 0
     action = [-1, 0, 1]
-    ITERATION =3000
+    ITERATION =4000
     reward = 0
     exp = []
     final_life = 0
-    while(len(exp)<4000):
+    while(len(exp)<10000):
 
         dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
-        z = random.random() * random.choice([-0.3, 0.3])
+        z = random.random() * random.choice([-0.4, 0.4])
         zn = random.choice([1,-1])
+        speed_treadmill= 0
         life = 0
         for j in range(dia,dia+ITERATION):
             life+=1
@@ -160,7 +161,7 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
     return X, Y
 
 
-NUM_EPOCH = 2000
+NUM_EPOCH = 1000
 model = buildmodel()
 #model = load_model("testing.h5")
 result = []
@@ -169,14 +170,14 @@ for e in range(NUM_EPOCH):
     loss = 0.0
     lz, ldz, ls, a, r, z, d_z, s_t = 0, 0, 0, 0,0,0,0,0
     exp = training(model)
-    X, Y = next_batch(exp, model, 3, 0.99, 4000)
+    X, Y = next_batch(exp, model, 3, 0.99, 10000)
     loss += model.train_on_batch(X, Y)
     print("*"*10,e, loss, time.time()-t)
     print("*"*25)
-    if e%50 == 0:
+    if e%25 == 0:
         result.append([e,loss])
         model.save("qmodel_"+str(e)+".h5")
-
+print(result)
 # speed = 0
 # action = [-1, 0, 1]
 # z = random.random()
