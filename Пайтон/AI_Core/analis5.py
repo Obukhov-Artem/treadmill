@@ -78,13 +78,11 @@ SHAPE = (3,)
 
 
 def award_function(z):
-    if abs(z)<0.1:
-        return 1-abs(z)
-    if abs(z) < 0.3:
-        return 0.3
-    if abs(z) < 0.5:
-        return 0
-    return -1
+    if abs(z)<=0.2:
+        return 1
+    elif abs(z) >0.7:
+        return -1
+    return 0
 
 
 def buildmodel():
@@ -112,16 +110,16 @@ def training(model):
     while(len(exp)<10000):
 
         dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
-        z = random.random() * random.choice([-0.4, 0.4])
+        z = random.random() * random.choice([-0.05, 0.05])
         zn = random.choice([1,-1])
         speed_treadmill= 0
         life = 0
         for j in range(dia,dia+ITERATION):
             life+=1
             last_z = z
-            last_delta_z  =body_dz[j-1]
+            last_delta_z  =body_dz[j-1]+delta_speed[j-1]
             last_speed  =speed_treadmill
-            delta_z  =body_dz[j]
+            delta_z  =body_dz[j]+delta_speed[j]
 
             z = z + zn*delta_z-speed_treadmill
             if random.random() < 0.01:
@@ -136,10 +134,10 @@ def training(model):
             if speed_treadmill <= -1.3:
                 speed_treadmill = -1.3
             reward = award_function(z)
-            if abs(z)>1:
+            if abs(z)>1.5:
                 break
             exp.append([last_z,last_delta_z,last_speed, current_action, reward, z,delta_z, speed_treadmill])
-            final_life = max(final_life,life)
+        final_life = max(final_life,life)
 
     print(final_life)
     return exp
@@ -154,7 +152,7 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
         X[i] = [lz,ldz, ls]
         Y[i] = model.predict(np.array([[lz,ldz, ls]]))[0]
         Q = np.max(model.predict(np.array([[z,d_z, s_t ]]))[0])
-        if abs(lz)>1:
+        if abs(lz)>2:
             Y[i, a] = r
         else:
             Y[i, a] = r + gamma * Q
