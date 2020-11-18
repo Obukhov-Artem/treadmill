@@ -80,7 +80,9 @@ SHAPE = (3,)
 def award_function(z):
     if abs(z)<0.1:
         return 1-abs(z)
-    if abs(z) < 0.8:
+    if abs(z) < 0.3:
+        return 0.3
+    if abs(z) < 0.5:
         return 0
     return -1
 
@@ -103,11 +105,11 @@ def buildmodel():
 def training(model):
     speed_treadmill= 0
     action = [-1, 0, 1]
-    ITERATION =2000
+    ITERATION =3000
     reward = 0
     exp = []
     final_life = 0
-    while(len(exp)<5000):
+    while(len(exp)<4000):
 
         dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
         z = random.random() * random.choice([-0.3, 0.3])
@@ -133,7 +135,7 @@ def training(model):
             if speed_treadmill <= -1.3:
                 speed_treadmill = -1.3
             reward = award_function(z)
-            if abs(z)>2:
+            if abs(z)>1:
                 break
             exp.append([last_z,last_delta_z,last_speed, current_action, reward, z,delta_z, speed_treadmill])
             final_life = max(final_life,life)
@@ -151,26 +153,29 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
         X[i] = [lz,ldz, ls]
         Y[i] = model.predict(np.array([[lz,ldz, ls]]))[0]
         Q = np.max(model.predict(np.array([[z,d_z, s_t ]]))[0])
-        if abs(lz)>2:
+        if abs(lz)>1:
             Y[i, a] = r
         else:
             Y[i, a] = r + gamma * Q
     return X, Y
 
 
-NUM_EPOCH = 250
+NUM_EPOCH = 2000
 model = buildmodel()
 #model = load_model("testing.h5")
-
+result = []
 for e in range(NUM_EPOCH):
     t = time.time()
     loss = 0.0
     lz, ldz, ls, a, r, z, d_z, s_t = 0, 0, 0, 0,0,0,0,0
     exp = training(model)
-    X, Y = next_batch(exp, model, 3, 0.99, 5000)
+    X, Y = next_batch(exp, model, 3, 0.99, 4000)
     loss += model.train_on_batch(X, Y)
     print("*"*10,e, loss, time.time()-t)
     print("*"*25)
+    if e%50 == 0:
+        result.append([e,loss])
+        model.save("qmodel_"+str(e)+".h5")
 
 # speed = 0
 # action = [-1, 0, 1]
@@ -180,4 +185,3 @@ for e in range(NUM_EPOCH):
 #     a = np.argmax(model.predict(np.array([z])))
 #     speed += action[a]
 #     print(z, action[a], speed)
-model.save("testing_new2.h5")

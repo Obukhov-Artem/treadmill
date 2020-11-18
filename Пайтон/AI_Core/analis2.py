@@ -2,7 +2,7 @@ import pandas
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pandas.read_csv("data\Kirill\dataOctober 30 13 06 51.csv", sep=";")
+data = pandas.read_csv("data\Kirill\dataOctober 30 13 09 55.csv", sep=";")
 #data = pandas.read_csv("two side.csv", sep=";")
 
 moving = False
