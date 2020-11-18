@@ -2,8 +2,8 @@ import pandas
 import matplotlib.pyplot as plt
 import numpy as np
 
-#data = pandas.read_csv("data\Kirill\dataOctober 30 13 06 51.csv", sep=";")
-data = pandas.read_csv("two side.csv", sep=";")
+data = pandas.read_csv("data\Kirill\dataOctober 30 13 09 55.csv", sep=";")
+#data = pandas.read_csv("two side.csv", sep=";")
 
 moving = False
 
@@ -136,7 +136,7 @@ def get_data(data,new_body, new_foot_1,new_foot_2, speed):
     return data
 
 
-NN = load_model("testing_new.h5")
+NN = load_model("testing_new2.h5")
 data = data.values
 nn_data = []
 k = (0.005 / 50)
