@@ -97,10 +97,10 @@ def award_function(z,last_z):
 def buildmodel():
     print("Now we build the model")
     model = Sequential()
-    model.add(Dense(100, activation='linear', input_shape=SHAPE))
-    model.add(Dense(100, activation='linear'))
+    model.add(Dense(400, activation='relu', input_shape=SHAPE))
+    model.add(Dense(400, activation='relu'))
     model.add(Dropout(0.3))
-    model.add(Dense(100, activation='linear'))
+    model.add(Dense(300, activation='relu'))
     model.add(Dense(100, activation='linear'))
     model.add(Dense(3))
     model.compile(optimizer='adam', loss='mse')
@@ -183,6 +183,74 @@ def training(model):
     print("z=",z,"speed=",speed_treadmill/k,"r=",reward,"act=",p )
     return exp
 
+def training0(model):
+    speed_treadmill= 0
+    action = [-1, 0, 1]
+    exp = []
+    final_life = 0
+    while(len(exp)<10200):
+
+        start_pos = random.random() * random.choice([-0.1, 0.1])
+        z = start_pos+body_dz[0]
+        z_foot1 = start_pos+foot_dz_1[0]
+        z_foot2 = start_pos+foot_dz_2[0]
+        zn = 1
+        speed_treadmill= 0
+        life = 0
+        reward = 0
+        for j in range(1,body_z.shape[0]):
+            life+=1
+
+            last_speed  =speed_treadmill
+
+            last_z = z
+            last_delta_z  =body_dz[j-1]+delta_speed[j-1]
+            delta_z  =body_dz[j]+delta_speed[j]
+            z = z + zn*delta_z-speed_treadmill
+
+            last_z_foot1 = z_foot1
+            last_delta_foot1  =foot_dz_1[j-1]+delta_speed[j-1]
+            delta_foot1  =foot_dz_1[j]+delta_speed[j]
+            z_foot1 = z_foot1 + zn*delta_foot1-speed_treadmill
+
+            last_z_foot2 = z_foot2
+            last_delta_foot2  =foot_dz_2[j-1]+delta_speed[j-1]
+            delta_foot2  =foot_dz_2[j]+delta_speed[j]
+            z_foot2 = z_foot2 + zn*delta_foot2-speed_treadmill
+            index = 1
+            if z>0.3:
+                index = 2
+            elif z<-0.3:
+                index = 0
+            else:
+                index = 0
+                if z < 0:
+                    index = 2
+
+
+            current_action = action[index]
+
+            speed_treadmill += current_action*k
+            if speed_treadmill >= 1.3/50:
+                speed_treadmill = 1.3/50
+            if speed_treadmill <= -1.3/50:
+                speed_treadmill = -1.3/50
+            zn = 1
+            if z < 0:
+                zn = -1
+            if zn * (z - last_z) < 0:
+                reward += 1
+            else:
+                reward -= 1
+            if abs(z)>2:
+                break
+            last_vector = [last_z,last_delta_z,last_z_foot1,last_delta_foot1,last_z_foot2,last_delta_foot2,last_speed]
+            vector = [z,delta_z,z_foot1,delta_foot1,z_foot2,delta_foot2, speed_treadmill]
+            print(j,"z=",z,"speed=",speed_treadmill/k,"r=",reward,"act=",action[index])
+            exp.append([last_vector, index, reward, vector])
+        final_life = max(final_life,life)
+    return exp
+
 
 def next_batch(exp, model, num_action, gamma, b_size=1000):
     batch = [exp[i] for i in range(b_size)]
@@ -204,6 +272,10 @@ NUM_EPOCH = 500
 model = buildmodel()
 #model = load_model("testing.h5")
 result = []
+training0
+exp = training0(model)
+X, Y = next_batch(exp, model, 3, 0.99, 10000)
+model.train_on_batch(X, Y)
 for e in range(NUM_EPOCH):
     t = time.time()
     loss = 0.0
