@@ -62,7 +62,7 @@ from keras.initializers import normal, identity
 from keras.models import model_from_json
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Reshape, Flatten
-from keras.layers.recurrent import LSTM
+from keras.layers.recurrent import LSTM, GRU
 import random, math, time
 import numpy as np
 
@@ -71,30 +71,53 @@ from keras.models import load_model
 speed_treadmill = 0
 delta_z = 0
 delta_z0 = 0.05
-SHAPE = (3,)
+SHAPE = (H,3,)
 
 
 def award_function(z, last_z):
     if abs(z) <= 0.1:
         return 1
     if abs(z) > 1.1:
-        return -1
+        return -10
     if z > 0:
         if z < last_z:
-            return 0.01
+            return 0.5
         else:
-            return -0.2
+            return -1
     else:
         if z > last_z:
-            return 0.01
+            return 0.5
         else:
-            return -0.2
+            return -1
 
 
 def buildmodel():
     print("Now we build the model")
     model = Sequential()
     model.add(Dense(100, activation='relu', input_shape=SHAPE))
+    model.add(Flatten())
+    model.add(Dense(200, activation='relu'))
+    model.add(Dropout(0.3))
+    model.add(Dense(200, activation='relu'))
+    model.add(Dense(100, activation='relu'))
+    model.add(Dense(3))
+    model.compile(optimizer='adam', loss='mse')
+    print("We finish building the model")
+    model.summary()
+    return model
+
+def buildmodel_lstm():
+    print("Now we build the lstm model")
+    model = Sequential()
+    model.add(GRU(32,
+                         dropout=0.1,
+                         recurrent_dropout=0.5,
+                         return_sequences=True,
+                         input_shape=SHAPE))
+    model.add(GRU(64, activation='relu',
+                         dropout=0.1,
+                         recurrent_dropout=0.5))
+    model.add(Flatten())
     model.add(Dense(200, activation='relu'))
     model.add(Dropout(0.3))
     model.add(Dense(200, activation='relu'))
@@ -112,8 +135,8 @@ def training(model):
     ITERATION = 4000
     exp = []
     final_life = 0
-    vector = []
-    while (len(exp) < 5000):
+
+    while (len(exp) < 12000):
 
         # dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
         z = random.random() * random.choice([-0.2, 0.2])
@@ -121,34 +144,38 @@ def training(model):
         speed_treadmill = 0
         life = 0
         reward = 0
-        for j in range(20, body_z.shape[0]):
+        data = []
+        for j in range(body_z.shape[0]):
             life += 1
             last_z = z
-            last_delta_z = body_dz[j - 1] + delta_speed[j - 1]
+            last_delta_z = body_dz[j - 1] +  [j - 1]
             last_speed = speed_treadmill
             delta_z = body_dz[j] + delta_speed[j]
 
             z = z + zn * delta_z - speed_treadmill
-            if len(vector) < H or random.random() < 0.1:
-                current_action = random.choice(action)
+            if len(data) <  H :
+                speed_treadmill = 0
             else:
+
+
                 # p = model.predict(np.array([[z, delta_z, speed_treadmill]]))
-                p = model.predict(np.array(vector))
+                p = model.predict(np.array([data[j-H:j]]))
                 current_action = action[np.argmax(p)]
 
-            speed_treadmill += current_action * k
+                speed_treadmill += current_action * k
             if speed_treadmill >= 1.3:
                 speed_treadmill = 1.3
             if speed_treadmill <= -1.3:
                 speed_treadmill = -1.3
             reward += award_function(z, last_z)
-            if len(vector) >= H:
-                vector = vector[1:]
-            vector.append([z, delta_z, speed_treadmill])
+            data.append([z, delta_z, speed_treadmill])
+
+
             if abs(z) > 2:
                 break
             # exp.append([last_z, last_delta_z, last_speed, current_action, reward, z, delta_z, speed_treadmill])
-            exp.append([vector, current_action, reward, z, delta_z, speed_treadmill])
+            if len(data) >= H+2:
+                exp.append([data[j-H-1:j-1], current_action, reward,data[j-H:j]])
         final_life = max(final_life, life)
 
     print(final_life)
@@ -160,14 +187,14 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
     X = np.zeros((b_size, *SHAPE))
     Y = np.zeros((b_size, num_action))
     for i in range(len(batch)):
-        lz, ldz, ls, a, r, z, d_z, s_t = batch[i]
-        X[i] = [lz, ldz, ls]
-        Y[i] = model.predict(np.array([[lz, ldz, ls]]))[0]
-        Q = np.max(model.predict(np.array([[z, d_z, s_t]]))[0])
-        if abs(lz) < 0.3:
-            Y[i, a] = r + gamma * Q
-        else:
+        last_data, a, r, cur_data = batch[i]
+        X[i] = last_data
+        Y[i] = model.predict(np.array([last_data]))[0]
+        Q = np.max(model.predict(np.array([cur_data]))[0])
+        if abs(last_data[-1][0]) > 1:
             Y[i, a] = r
+        else:
+            Y[i, a] = r + gamma * Q
     return X, Y
 
 
@@ -178,9 +205,9 @@ result = []
 for e in range(NUM_EPOCH):
     t = time.time()
     loss = 0.0
-    lz, ldz, ls, a, r, z, d_z, s_t = 0, 0, 0, 0, 0, 0, 0, 0
+    #lz, ldz, ls, a, r, z, d_z, s_t = 0, 0, 0, 0, 0, 0, 0, 0
     exp = training(model)
-    X, Y = next_batch(exp, model, 3, 0.99, 5000)
+    X, Y = next_batch(exp, model, 3, 0.99, 10000)
     loss += model.train_on_batch(X, Y)
     print("*" * 10, e, loss, time.time() - t)
     print("*" * 25)
