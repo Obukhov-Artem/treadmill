@@ -115,7 +115,7 @@ def training(model):
     ITERATION =4000
     exp = []
     final_life = 0
-    while(len(exp)<10500):
+    while(len(exp)<10200):
 
         #dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
         start_pos = random.random() * random.choice([-0.1, 0.1])
@@ -147,12 +147,13 @@ def training(model):
             z_foot2 = z_foot2 + zn*delta_foot2-speed_treadmill
 
 
-            if random.random() < 0.1:
-                current_action = random.choice(action)
-                p = current_action
-            else:
-                p = model.predict(np.array([[z,delta_z,z_foot1,delta_foot1,z_foot2,delta_foot2, speed_treadmill]]))
-                current_action = action[np.argmax(p)]
+            # if random.random() < 0.1:
+            #     current_action = random.choice(action)
+            #     p = current_action
+            # else:
+            p = model.predict(np.array([[z,delta_z,z_foot1,delta_foot1,z_foot2,delta_foot2, speed_treadmill]]))
+            index = np.argmax(p)
+            current_action = action[index]
 
             speed_treadmill += current_action*k
             if speed_treadmill >= 1.3/50:
@@ -168,17 +169,18 @@ def training(model):
                 reward -= 1
             #reward+= award_function(z,last_z)
             #print(j,"z=",z,"speed=",speed_treadmill/k,"r=",reward,"act=",p )
-            if abs(z)>3:
+            if abs(z)>2:
                 break
             last_vector = [last_z,last_delta_z,last_z_foot1,last_delta_foot1,last_z_foot2,last_delta_foot2,last_speed]
             vector = [z,delta_z,z_foot1,delta_foot1,z_foot2,delta_foot2, speed_treadmill]
-            exp.append([last_vector, current_action, reward, vector])
+            exp.append([last_vector, index, reward, vector])
         final_life = max(final_life,life)
         #print()
         #print()
         #print()
 
     print(final_life)
+    print("z=",z,"speed=",speed_treadmill/k,"r=",reward,"act=",p )
     return exp
 
 
