@@ -5,22 +5,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 #data = pandas.read_csv("Arch/dataOctober 30 12 53 16.csv", sep=";")
 import glob
-# all_files = glob.glob("data/All/*.csv")
-#
-#
-# X, element = [], []
-# k = 0.005 / 50
-# data = None
-# for f in all_files:
-#     if data is None:
-#         data = pd.read_csv(f, sep=";", header=0, index_col=None)
-#     else:
-#         df = pd.read_csv(f, sep=";", header=0, index_col=None)
-#         data = data.append(df)
-#
-# for i in data[:, :29]:
-#     X.append([i[-2] * k, i[2],i[11],i[20],i[8],i[17],i[26]])
-data = pd.read_csv("two side.csv", sep=";")
+all_files = glob.glob("data/All/*.csv")
+
+
+X, element = [], []
+k = 0.005 / 50
+data = None
+for f in all_files:
+    if data is None:
+        data = pd.read_csv(f, sep=";", header=0, index_col=None)
+    else:
+        df = pd.read_csv(f, sep=";", header=0, index_col=None)
+        data = data.append(df)
+
 data = data.values
 
 #
@@ -78,6 +75,8 @@ SHAPE = (7,)
 
 
 
+
+
 def award_function(z,last_z):
     if z>0:
         if z<last_z:
@@ -93,15 +92,13 @@ def award_function(z,last_z):
     if abs(z)>1:
         return -10
 
-
 def buildmodel():
     print("Now we build the model")
     model = Sequential()
-    model.add(Dense(400, activation='relu', input_shape=SHAPE))
-    model.add(Dense(400, activation='relu'))
+    model.add(Dense(100, activation='selu', input_shape=SHAPE))
+    model.add(Dense(150, activation='selu'))
     model.add(Dropout(0.3))
-    model.add(Dense(300, activation='relu'))
-    model.add(Dense(100, activation='linear'))
+    model.add(Dense(50, activation='selu'))
     model.add(Dense(3))
     model.compile(optimizer='adam', loss='mse')
     print("We finish building the model")
@@ -111,13 +108,14 @@ def buildmodel():
 
 def training(model):
     speed_treadmill= 0
-    action = [-1, 0, 1]
-    ITERATION =4000
+    action = [-5, 0, 5]
+    ITERATION =5000
     exp = []
     final_life = 0
-    while(len(exp)<10200):
+    reward = 0
+    while(len(exp)<15100):
 
-        #dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
+        dia = random.randint(2, body_z.shape[0] - 5 - ITERATION)
         start_pos = random.random() * random.choice([-0.1, 0.1])
         z = start_pos+body_dz[0]
         z_foot1 = start_pos+foot_dz_1[0]
@@ -125,7 +123,6 @@ def training(model):
         zn = 1
         speed_treadmill= 0
         life = 0
-        reward = 0
         for j in range(1,body_z.shape[0]):
             life+=1
 
@@ -163,7 +160,9 @@ def training(model):
             zn = 1
             if z < 0:
                 zn = -1
-            if zn * (z - last_z) < 0:
+            if abs(z) < 0.1:
+                reward += 2
+            elif zn * (z - last_z) < 0:
                 reward += 1
             else:
                 reward -= 1
@@ -185,19 +184,19 @@ def training(model):
 
 def training0(model):
     speed_treadmill= 0
-    action = [-1, 0, 1]
+    action = [-5, 0, 5]
     exp = []
     final_life = 0
-    while(len(exp)<10200):
+    reward = 0
+    while(len(exp)<20100):
 
-        start_pos = random.random() * random.choice([-0.1, 0.1])
+        start_pos = random.random() * random.choice([-0.3, 0.3])
         z = start_pos+body_dz[0]
         z_foot1 = start_pos+foot_dz_1[0]
         z_foot2 = start_pos+foot_dz_2[0]
         zn = 1
         speed_treadmill= 0
         life = 0
-        reward = 0
         for j in range(1,body_z.shape[0]):
             life+=1
 
@@ -217,16 +216,36 @@ def training0(model):
             last_delta_foot2  =foot_dz_2[j-1]+delta_speed[j-1]
             delta_foot2  =foot_dz_2[j]+delta_speed[j]
             z_foot2 = z_foot2 + zn*delta_foot2-speed_treadmill
+            zn = 1
             index = 1
-            if z>0.3:
-                index = 2
-            elif z<-0.3:
-                index = 0
-            else:
-                index = 0
-                if z < 0:
+            if z < 0:
+                zn = -1
+            speed_k = min(255, abs(z * 255)) * k
+            if abs(z)<0.1:
+                index =1
+                if speed_treadmill>0:
+                        index = 0
+                else:
                     index = 2
 
+            else:
+                if speed_k > abs(speed_treadmill):
+                    if z>0:
+                        index = 2
+                    else:
+                        index = 0
+                else:
+                    if z>0:
+                        index = 0
+                    else:
+                        index = 2
+                if abs(z)>0.7:
+                    if z>0:
+                        if speed_treadmill<0:
+                            index = 2
+                    else:
+                        if speed_treadmill>0:
+                            index = 0
 
             current_action = action[index]
 
@@ -235,10 +254,9 @@ def training0(model):
                 speed_treadmill = 1.3/50
             if speed_treadmill <= -1.3/50:
                 speed_treadmill = -1.3/50
-            zn = 1
-            if z < 0:
-                zn = -1
-            if zn * (z - last_z) < 0:
+            if abs(z)<0.1:
+                reward += 2
+            elif zn * (z - last_z) < 0:
                 reward += 1
             else:
                 reward -= 1
@@ -246,7 +264,7 @@ def training0(model):
                 break
             last_vector = [last_z,last_delta_z,last_z_foot1,last_delta_foot1,last_z_foot2,last_delta_foot2,last_speed]
             vector = [z,delta_z,z_foot1,delta_foot1,z_foot2,delta_foot2, speed_treadmill]
-            print(j,"z=",z,"speed=",speed_treadmill/k,"r=",reward,"act=",action[index])
+            print(j,speed_k/k,"z=",z,"speed=",speed_treadmill/k,"r=",reward,"act=",action[index])
             exp.append([last_vector, index, reward, vector])
         final_life = max(final_life,life)
     return exp
@@ -272,15 +290,17 @@ NUM_EPOCH = 500
 model = buildmodel()
 #model = load_model("testing.h5")
 result = []
-training0
 exp = training0(model)
-X, Y = next_batch(exp, model, 3, 0.99, 10000)
+X, Y = next_batch(exp, model, 3, 0.99, 20000)
+model.fit(X, Y,validation_split=0.2,epochs=20,verbose=1)
+exp = training0(model)
+X, Y = next_batch(exp, model, 3, 0.99, 15000)
 model.train_on_batch(X, Y)
 for e in range(NUM_EPOCH):
     t = time.time()
     loss = 0.0
     exp = training(model)
-    X, Y = next_batch(exp, model, 3, 0.99, 10000)
+    X, Y = next_batch(exp, model, 3, 0.99, 15000)
     loss += model.train_on_batch(X, Y)
     print("*"*25)
     print("---"*10,e, loss, time.time()-t)
