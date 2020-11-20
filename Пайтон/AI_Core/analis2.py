@@ -2,8 +2,8 @@ import pandas
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pandas.read_csv("data\Arch\dataOctober 30 12 53 16.csv", sep=";")
-#data = pandas.read_csv("two side.csv", sep=";")
+#data = pandas.read_csv("data\Arch\dataOctober 30 12 53 16.csv", sep=";")
+data = pandas.read_csv("two side.csv", sep=";")
 
 moving = False
 
@@ -112,16 +112,23 @@ def nn(z, speed, model):
         return -255
     return speed + action[a]
 
-def nn2(z,d_z, speed, model):
-    action = [-1, 0, 1]
-    p = model.predict(np.array([[z,d_z, speed]]))
+def nn2(z,d_z,zf1,d_zf1,zf2,d_zf2, speed, model):
+    action = [-5, 0, 5]
+    p = model.predict(np.array([[z,d_z,zf1,d_zf1,zf2,d_zf2, speed]]))
+    if abs(z)>0.2:
+        p[0][1]=-9999999
     a = action[np.argmax(p)]
+    if z>0 and a!=0:
+        a = action[2]
+    elif z<0 and a!=0:
+        a = action[0]
     speed += a * 0.005
     if speed >= 1.3:
         speed = 1.3
     if speed <= -1.3:
         speed = -1.3
-    print(speed, z, d_z,p)
+
+    #print(speed, z, a,p)
     return speed
 
 
@@ -136,7 +143,7 @@ def get_data(data,new_body, new_foot_1,new_foot_2, speed):
     return data
 
 
-NN = load_model("qmodel_490.h5")
+NN = load_model("qmodel_400.h5")
 data = data.values
 nn_data = []
 k = (0.005 / 50)
@@ -197,7 +204,7 @@ for i in range(1, min(len(body_z),NUM)):
     # my_speed = nn(np.array([my_speed,nn_body[i - 1],nn_foot_1[i - 1],nn_foot_2[i - 1],
     #                        body_dz[i], foot_dz_1[i], foot_dz_2[i]]), my_speed, NN)
     # #my_speed = nn(z, my_speed, NN)
-    my_speed = nn2(nn_body[i - 1], body_dz[i], my_speed, NN)
+    my_speed = nn2(nn_body[i - 1], body_dz[i], nn_foot_1[i - 1], foot_dz_1[i], nn_foot_2[i - 1], foot_dz_2[i], my_speed, NN)
 
     nn_speed_treadmill.append(my_speed)
     new_body = nn_body[i - 1] + body_dz[i] + delta_speed[i] - my_speed/50
@@ -219,20 +226,17 @@ x = [i / 50 for i in range(min(len(body_z),NUM))]
 # plt.plot(range(len(body_z)),body_z)
 if graph:
 
-    fig, ax = plt.subplots()
-    ax1 = ax.twinx()
-    # ax.plot(x, body_z, color='orange',label="body_z")
-    # ax1.plot(x, speed_treadmill, color='red',label="speed_treadmill")
-    #ax.plot(x, tr_z_body, color='yellow', label="tr_z_body")
-    ax.plot(x, alg_1_z_body, color='orange', label="alg_1_z_body")
-    ax.plot(x, nn_body, color='red', label="nn_z_body")
-    ax1.plot(x, alg_1_speed_treadmill, color='green', label="alg_1_speed_treadmill")
-    ax1.plot(x, nn_speed_treadmill, color='blue', label="nn_speed_treadmill")
-    ax.set_ylabel('Z')
-    ax1.set_ylabel('speed treadmill')
-    ax.set_title("Положение человека на дорожке")
+    fig, ax = plt.subplots(1,2)
+    ax[0].plot(x, alg_1_z_body, color='orange', label="alg_1_z_body")
+    ax[0].plot(x, nn_body, color='red', label="nn_z_body")
+    ax[1].plot(x, alg_1_speed_treadmill, color='green', label="alg_1_speed_treadmill")
+    ax[1].plot(x, nn_speed_treadmill, color='blue', label="nn_speed_treadmill")
+    ax[0].set_ylabel('Z')
+    ax[1].set_ylabel('speed treadmill')
+
     fig.legend()
     plt.show()
+
 else:
     fig, ax = plt.subplots()
     ax1 = ax.twinx()
