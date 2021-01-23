@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 # data = pandas.read_csv("Arch/dataOctober 30 12 53 16.csv", sep=";")
 import glob
-
+# аналог анализ5, но используется несколько предыдущих значений траектории длиной H.
+# Эффективность не доказана
 all_files = glob.glob("data/All/*.csv")
 
 X, element = [], []

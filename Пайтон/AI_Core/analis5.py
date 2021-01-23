@@ -1,4 +1,4 @@
-
+# загрузка всех данных
 import pandas as pd
 
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ for f in all_files:
         data = data.append(df)
 
 data = data.values
-
+# формирование обучающей выборки
 for i in data[:, :29]:
     X.append([i[-2] * k, i[2],i[11],i[20],i[8],i[17],i[26]])
 
@@ -76,7 +76,7 @@ delta_z0 = 0.05
 SHAPE = (3,)
 
 
-
+# функция наград
 def award_function(z,last_z):
     if abs(z)<=0.1:
         return 1
@@ -95,7 +95,7 @@ def award_function(z,last_z):
 
 
 
-
+# модель
 def buildmodel():
     print("Now we build the model")
     model = Sequential()
@@ -110,7 +110,7 @@ def buildmodel():
     model.summary()
     return model
 
-
+# обучение изначальное для улучшения начальных весов модели
 def training(model):
     speed_treadmill= 0
     action = [-1, 0, 1]
@@ -153,7 +153,7 @@ def training(model):
     print(final_life)
     return exp
 
-
+# итерация обучения с подкреплением
 def next_batch(exp, model, num_action, gamma, b_size=1000):
     batch = [exp[i] for i in range(b_size)]
     X = np.zeros((b_size, *SHAPE))
@@ -169,7 +169,7 @@ def next_batch(exp, model, num_action, gamma, b_size=1000):
             Y[i, a] = r
     return X, Y
 
-
+# основной цикл обучения
 NUM_EPOCH = 500
 model = buildmodel()
 #model = load_model("testing.h5")
